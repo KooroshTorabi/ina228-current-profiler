@@ -14,6 +14,46 @@ There are two variants built from the same range-switching core:
 
 Choose **A** for the cleanest, smallest-error build. Choose **B** if you already have an INA228 breakout or don't want to solder a 0.5 mm-pitch VSSOP.
 
+### Why not just change the breakout's shunt?
+
+A single shunt only moves the measurement window; it does not widen it:
+
+| Single shunt | Full scale (±40.96 mV range) | 1 LSB | Good for |
+|---|---|---|---|
+| 15 mΩ (stock) | 2.7 A | ≈ 5 µA | run mode |
+| 1 Ω | 41 mA | ≈ 78 nA | light run, stop modes |
+| 1 kΩ | 41 µA | ≈ 78 pA | deep sleep only |
+
+Measuring an STM32 from deep sleep (tens of nA) up to full load (2.5 A) takes switched ranges. Variant B adds them in front of a ready-made breakout.
+
+### Variant B in short
+
+- **The adapter carries the ranging**: the shunts, range MOSFETs and gate drivers are on the adapter. The INA228 is on the breakout.
+- **J4 is a Kelvin sense output**:
+  - S+ is taken from the R1 pad, S− from the DUT terminal.
+  - Wire S+ to the module's IN+, S− to IN− (and VBUS), GND to GND.
+  - **No load current flows through the module.**
+- **I2C:** the module's Qwiic connector goes to the logger. The adapter's J3 has only `3V3, GND, CTL_H, CTL_M`.
+
+> **⚠ Disable the module's own shunt first.** Otherwise it sits directly across S+ and S−, almost all of the current goes through the sense wires, and every range reads wrong.
+> - **SparkFun Current Sensor INA228 (SEN-31438):** open the **SHUNT** jumper on the back.
+> - **Adafruit INA228 (5832):** remove the 15 mΩ shunt resistor.
+>
+> Before wiring, measure the resistance between the module's IN+ and IN−. It must be high (hundreds of kΩ or more), not milliohms.
+
+Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J2 current path. Full preparation and wiring notes: [docs/module.md](docs/module.md).
+
+## 3D models
+
+| Variant A, bottom | Variant B, bottom |
+|---|---|
+| ![A bottom](docs/integrated/3d_bottom.png) | ![B bottom](docs/module/3d_bottom.png) |
+
+- **STEP** (`hardware*/3d/*.step`): opens in any CAD tool (FreeCAD, Fusion, SolidWorks) for enclosure design.
+- **GLB** (`hardware*/3d/*.glb`): the same model with copper, solder mask and silkscreen from the real board layers. Opens in any glTF viewer (Blender, online glTF viewers).
+- **Parts:** 3D bodies come from the KiCad 3D library.
+- **Terminals:** the wire entries of J1 and J2 face the board edge on both variants.
+
 ## How it works
 
 ```
