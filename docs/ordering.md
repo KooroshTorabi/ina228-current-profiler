@@ -72,4 +72,4 @@ If a part is rotated wrongly, fix it with the rotate buttons in the preview. You
 JLC's 3D models don't use KiCad's zero orientation for every package. `tools/jlcpcb.py`
 corrects the CPL so that the pin-1 dots in JLC's Component Placements preview land on
 the silkscreen pin-1 marks: Q1 −90°, Q2–Q4 180°, D1/D2 180° (cathode to the right),
-J3 −90° and placed at its pad centroid. Still check the preview before ordering.
+J3 −90°; J1, J2 and J3 are placed at their pad centroid (JLC uses the body centre, KiCad uses pin 1). Still check the preview before ordering.

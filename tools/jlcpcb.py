@@ -40,7 +40,7 @@ LCSC = {
 # parts (checked against pin-1 dots in JLC's placement preview, Nov 2026). Degrees, CCW positive.
 ROT_FIX = {"Q1": -90, "Q2": 180, "Q3": 180, "Q4": 180, "D1": 180, "D2": 180, "J3": -90}
 # JLC places these at the body centre, KiCad's origin is pin 1: use the pad centroid instead.
-CENTROID = {"J3"}
+CENTROID = {"J1", "J2", "J3"}
 
 parts = json.load(open(os.path.join(HW, "parts.json")))
 placed = [r for r in parts if not r.startswith("H")]
