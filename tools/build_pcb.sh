@@ -25,6 +25,8 @@ KICAD7_3DMODEL_DIR=${KICAD7_3DMODEL_DIR:-/usr/share/kicad/3dmodels} \
 PY3D=${PY3D:-python3}
 $PY3D tools/step2glb.py "$HW/3d/$NAME.step" "$HW/3d/$NAME.glb"
 $PY3D tools/make_3d.py "$PCB" "$HW/3d/$NAME.glb" "$HW/3d/$NAME.glb"
+$PY3D tools/glb2stl.py "$HW/3d/$NAME.glb" "$HW/3d/$NAME.stl"
+mkdir -p docs/viewer && cp "$HW/3d/$NAME.glb" docs/viewer/
 mkdir -p docs/$VARIANT
 PYOPENGL_PLATFORM=${PYOPENGL_PLATFORM:-osmesa} $PY3D tools/render_3d.py "$HW/3d/$NAME.glb" "docs/$VARIANT/3d"
 for v in "F.Cu,F.SilkS,F.Mask,Edge.Cuts:top" "B.Cu,B.SilkS,Edge.Cuts:bottom"; do

@@ -45,11 +45,16 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 
 ## 3D models
 
+**Interactive viewer:** https://kooroshtorabi.github.io/ina228-current-profiler/viewer/ . Turn the board, zoom, switch between the two variants, and point at a part to see its name and value.
+
+**STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl) or [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
+
 | Variant A, bottom | Variant B, bottom |
 |---|---|
 | ![A bottom](docs/integrated/3d_bottom.png) | ![B bottom](docs/module/3d_bottom.png) |
 
 - **STEP** (`hardware*/3d/*.step`): opens in any CAD tool (FreeCAD, Fusion, SolidWorks) for enclosure design.
+- **STL** (`hardware*/3d/*.stl`): one-colour mesh in mm, shown by GitHub and accepted by any slicer or mesh tool.
 - **GLB** (`hardware*/3d/*.glb`): the same model with copper, solder mask and silkscreen from the real board layers. Opens in any glTF viewer (Blender, online glTF viewers).
 - **Parts:** 3D bodies come from the KiCad 3D library.
 - **Terminals:** the wire entries of J1 and J2 face the board edge on both variants.
@@ -102,6 +107,7 @@ docs/
   design.md          design notes and calibration procedure
   module.md          variant B: preparing and wiring the breakout
   integrated/ module/  schematic, PCB and 3D renders
+  viewer/            interactive 3D viewer (GitHub Pages)
 firmware/            logger firmware (planned)
 tools/
   gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module)
@@ -110,6 +116,7 @@ tools/
   step2glb.py        STEP → GLB with colours (OpenCascade)
   make_3d.py         adds copper/mask/silk textures to the GLB
   render_3d.py       PNG renders of the GLB
+  glb2stl.py         one-colour STL for GitHub's 3D viewer
   build_pcb.sh       runs all of the above and exports fab files
 ```
 
