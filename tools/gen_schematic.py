@@ -5,8 +5,13 @@ import uuid, os, json
 PROJ = "current_meter"
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "kicad")
 os.makedirs(OUT, exist_ok=True)
-ROOT = str(uuid.uuid4())
-U = lambda: str(uuid.uuid4())
+NS = uuid.UUID("6f1c2a54-9b0e-4d3c-8a8e-1c0de5ca1e01")
+ROOT = str(uuid.uuid5(NS, "root"))
+_ctr = [0]
+def U():
+    _ctr[0] += 1
+    return str(uuid.uuid5(NS, f"item{_ctr[0]}"))
+SYM_UUID = {}
 F = lambda v: f"{v:.3f}".rstrip("0").rstrip(".")
 
 # ---------- symbol library ----------
@@ -76,6 +81,7 @@ def conn(n):
     body = [f'(rectangle (start -1.27 1.27) (end 1.27 {F(-2.54*(n-1)-1.27)}) {st})']
     sym(f"Conn_1x{n:02d}", "J", body, pins, ref_at=(0, 2.54, 0), val_at=(0, -2.54 * n, 0))
 conn(2); conn(7)
+sym("MountingHole", "H", [f'(circle (center 0 0) (radius 1.27) {st})'], [], ref_at=(2.54, 0.635, 0), val_at=(2.54, -1.27, 0))
 
 def sym_sexpr(name, prefix):
     s = SYMS[name]
@@ -111,9 +117,10 @@ FP_R1206 = "Resistor_SMD:R_1206_3216Metric"
 FP_R0805 = "Resistor_SMD:R_0805_2012Metric"
 FP_R0603 = "Resistor_SMD:R_0603_1608Metric"
 FP_SOT23 = "Package_TO_SOT_SMD:SOT-23"
+TB = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
 
 # shunt chain
-part("J1", "Conn_1x02", "VIN_IN", "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical", 22.86, 40.64,
+part("J1", "Conn_1x02", "VIN_IN", TB, 22.86, 40.64,
      {"1": "VIN", "2": "GND"}, "Supply input (bench PSU / 3.3V)")
 part("R1", "R", "50m 1% 1W", FP_R2512, 63.5, 45.72, {"1": "VIN", "2": "NODE_A"}, "R_H shunt, high range, 4-wire layout")
 part("R2", "R", "1R 0.1%", FP_R1206, 63.5, 76.2, {"1": "NODE_A", "2": "NODE_B"}, "R_M shunt, mid range")
@@ -127,7 +134,7 @@ part("Q2", "PMOS_SOT23", "DMP2037U", FP_SOT23, 91.44, 101.6, {"1": "GM", "2": "N
      "Q_M: bypasses R3 (mid range)")
 part("C1", "C", "22u X7R 10V", "Capacitor_SMD:C_1206_3216Metric", 116.84, 127.0, {"1": "DUT_VDD", "2": "GND"},
      "C_out, supplies DUT wake-up transient")
-part("J2", "Conn_1x02", "DUT_OUT", "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical", 142.24, 124.46,
+part("J2", "Conn_1x02", "DUT_OUT", TB, 142.24, 124.46,
      {"1": "DUT_VDD", "2": "GND"}, "To STM32 IDD jumper / VDD")
 
 # gate drive (P-FET gate pull-ups go to VIN, upstream of all shunts!)
@@ -150,6 +157,9 @@ part("J3", "Conn_1x07", "LOGGER", "Connector_PinHeader_2.54mm:PinHeader_1x07_P2.
      {"1": "+3V3", "2": "GND", "3": "SDA", "4": "SCL", "5": "ALERT", "6": "CTL_H", "7": "CTL_M"},
      "To logger MCU: 3V3 GND SDA SCL ALERT CTL_H CTL_M")
 
+for i, (hx, hy) in enumerate([(205.74, 116.84), (218.44, 116.84), (231.14, 116.84), (243.84, 116.84)]):
+    part(f"H{i+1}", "MountingHole", "M3", "MountingHole:MountingHole_3.2mm_M3", hx, hy, {}, "M3 mounting hole")
+
 # ---------- schematic emit ----------
 STUB = 2.54
 items = []
@@ -171,8 +181,9 @@ for p in P:
         f'(property "Description" "{p["desc"]}" (id 4) (at {F(p["x"])} {F(p["y"])} 0) (effects (font (size 1.27 1.27)) hide))',
     ]
     pins_s = " ".join(f'(pin "{n}" (uuid "{U()}"))' for n in nums)
+    SYM_UUID[p["ref"]] = su = str(uuid.uuid5(NS, "sym:" + p["ref"]))
     items.append(f'(symbol (lib_id "meter:{p["sym"]}") (at {F(p["x"])} {F(p["y"])} 0) (unit 1) '
-                 f'(in_bom yes) (on_board yes) (dnp no) (uuid "{U()}") '
+                 f'(in_bom {"no" if p["sym"]=="MountingHole" else "yes"}) (on_board yes) (dnp no) (uuid "{su}") '
                  + " ".join(props) + " " + pins_s +
                  f' (instances (project "{PROJ}" (path "/{ROOT}" (reference "{p["ref"]}") (unit 1)))))')
     for pin in pinlist:
@@ -227,5 +238,6 @@ with open(os.path.join(OUT, "..", "BOM.csv"), "w", newline="") as f:
         w.writerow([p["ref"], p["val"], p["fp"], p["desc"]])
 
 # intended netlist for checking
+json.dump({p["ref"]: dict(nets=p["nets"], fp=p["fp"], val=p["val"], uuid=SYM_UUID[p["ref"]]) for p in P}, open(os.path.join(OUT, "..", "parts.json"), "w"), indent=1)
 json.dump({p["ref"]: p["nets"] for p in P}, open(os.path.join(OUT, "..", "intended_nets.json"), "w"))
 print("written", len(P), "parts")

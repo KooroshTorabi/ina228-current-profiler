@@ -23,13 +23,31 @@ INA228: IN+ = VIN, IN- = DUT_VDD  → always measures the whole chain
 
 Because Q1 bypasses R2 and R3 together, only **one** MOSFET's Rds(on) sits in the path at high current.
 
+## PCB
+
+| Top | Bottom |
+|---|---|
+| ![PCB top](docs/pcb_top.svg) | ![PCB bottom](docs/pcb_bottom.svg) |
+
+- 62 × 49 mm, 2 layers, 1 oz copper, 4 × M3 mounting holes. Solid GND pour on both layers.
+- **VIN / DUT:** 5.08 mm screw terminals (J1 / J2).
+- **Logger:** 1×7 2.54 mm header (J3).
+- **Hand-routed nets:** the measurement-critical nets (VIN, NODE_A, NODE_B, DUT_VDD) are routed by hand in `tools/gen_pcb.py` and locked:
+  - The 2.5 A path is 2 mm wide.
+  - IN+ is a Kelvin trace from the R1 pad.
+  - IN- is a Kelvin trace from the DUT terminal.
+  - The gate pull-ups tap VIN upstream of the sense point.
+- **Autorouted nets:** everything else is routed with Freerouting.
+- **Fabrication files:** `hardware/fab/gerbers.zip` (Gerbers + drill, ready to upload to a PCB fab) and `hardware/fab/positions_top.csv` (pick-and-place).
+
 See [docs/design.md](docs/design.md) for the design notes: wake-up transients, leakage, calibration and firmware strategy.
 
 ## Repository layout
 
 ```
 hardware/
-  kicad/            KiCad 7 project (opens in KiCad 8/9)
+  kicad/            KiCad 7 project: schematic + PCB (opens in KiCad 8/9)
+  fab/              Gerbers, drill and pick-and-place files
   schematic.pdf     printable schematic
   BOM.csv           bill of materials
 docs/
@@ -38,6 +56,9 @@ docs/
 firmware/           logger firmware (planned)
 tools/
   gen_schematic.py  regenerates the KiCad schematic, symbol library and BOM
+  gen_pcb.py        PCB placement and hand-routing of the critical nets
+  route.py          Freerouting for the remaining nets, GND pours
+  build_pcb.sh      runs everything and exports the fab files
 ```
 
 ## Logger connector (J3)
@@ -55,10 +76,21 @@ tools/
 ## Status
 
 - [x] Concept and schematic
-- [ ] PCB layout
+- [x] PCB layout (rev A, not yet fabricated)
 - [ ] Logger firmware with auto-ranging
 - [ ] Calibration and validation against a reference meter
 
 ## License
 
 MIT, see [LICENSE](LICENSE).
+
+## Rebuilding
+
+The schematic and PCB are generated from scripts, so the design can be reproduced or changed in code:
+
+```sh
+# needs KiCad 7+, Java, xvfb-run and the Freerouting 1.9 jar
+tools/build_pcb.sh /path/to/freerouting-1.9.0.jar
+```
+
+Freerouting is not deterministic, so the low-current routing can differ between runs. `route.py` retries until every net is connected. Always run DRC in KiCad after rebuilding.
