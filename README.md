@@ -45,7 +45,7 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 
 ## 3D models
 
-**Interactive viewer:** https://kooroshtorabi.github.io/ina228-current-profiler/viewer/ . Turn the board, zoom, switch between the two variants, and point at a part to see its name and value.
+**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer . Turn the board, zoom, switch between the two variants, and point at a part to see its name and value.
 
 **STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl) or [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
 
@@ -112,7 +112,7 @@ docs/
   module.md          variant B: preparing and wiring the breakout
   ordering.md        ordering variant A assembled (JLCPCB)
   integrated/ module/  schematic, PCB and 3D renders
-  viewer/            interactive 3D viewer (GitHub Pages)
+  viewer/            interactive 3D viewer (served at kourosh.site)
 firmware/            logger firmware (planned)
 tools/
   gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module)
