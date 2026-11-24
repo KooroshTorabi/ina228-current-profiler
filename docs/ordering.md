@@ -31,12 +31,12 @@ Regenerate them with `python3 tools/jlcpcb.py` after any board change.
 | Ref | Part | LCSC |
 |---|---|---|
 | U1 | TI INA228AIDGSR | C2887910 |
-| Q1 | Diodes DMP2008USS-13 | C6934873 |
+| Q1 | onsemi FDS4465 (DMP2008USS-13 was out of stock) | C92137 |
 | Q2 | Diodes DMP2035U-7 | C110499 |
 | Q3, Q4 | 2N7002 (JLC Basic) | C8545 |
 | D1, D2 | Nexperia BAS416Z | C549240 |
 | R1 | 50 mΩ 1 % 2 W 2512 | C323779 |
-| R2 | 1 Ω 0.1 % 25 ppm 1206 | C513714 |
+| R2 | 1 Ω 0.1 % thin film 1206 | C2912606 |
 | R3 | 1 kΩ 0.1 % 25 ppm 0805 | C856765 |
 | R4–R7 | 100 kΩ 0603 (Basic) | C25803 |
 | R8 | 10 kΩ 0603 (Basic) | C25804 |
@@ -66,3 +66,10 @@ The CPL uses KiCad's rotations. JLCPCB's library sometimes defines zero degrees 
 - **J1, J2**: the wire openings face the nearest board edge (outward).
 
 If a part is rotated wrongly, fix it with the rotate buttons in the preview. You can also leave a note: JLCPCB's engineers check polarity before production and email you if something is unclear.
+
+## Placement rotations
+
+JLC's 3D models don't use KiCad's zero orientation for every package. `tools/jlcpcb.py`
+corrects the CPL so that the pin-1 dots in JLC's Component Placements preview land on
+the silkscreen pin-1 marks: Q1 −90°, Q2–Q4 180°, D1/D2 180° (cathode to the right),
+J3 −90° and placed at its pad centroid. Still check the preview before ordering.
