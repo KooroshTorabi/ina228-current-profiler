@@ -107,13 +107,13 @@ const VARIANTS = {
     file: "current_meter.glb",
     lede: "INA228 on the board. Shunts, range FETs and the monitor share one Kelvin layout; a logger MCU talks I2C on J3.",
     facts: [["Range", "nA to 2.5 A, 3 ranges"], ["Sense", "INA228 on board, Kelvin traces"], ["Logger header", "3V3 GND SDA SCL ALERT CTL_H CTL_M"], ["Parts", "22 + 4 mounting holes"]],
-    parts: [["C1","22u X7R 10V"],["C2","100n"],["D1","BAS416"],["D2","BAS416"],["J1","VIN_IN"],["J2","DUT_OUT"],["J3","LOGGER"],["Q1","DMP2008USS"],["Q2","DMP2037U"],["Q3","2N7002"],["Q4","2N7002"],["R1","50m 1% 1W"],["R2","1R 0.1%"],["R3","1k 0.1% 25ppm"],["R4","100k"],["R5","100k"],["R6","100k"],["R7","100k"],["R8","10k"],["R9","4.7k"],["R10","4.7k"],["U1","INA228AIDGSR"]]
+    parts: [["C1","22u X5R 25V"],["C2","100n"],["D1","BAS416"],["D2","BAS416"],["J1","VIN_IN"],["J2","DUT_OUT"],["J3","LOGGER"],["Q1","DMP2008USS"],["Q2","DMP2035U-7"],["Q3","2N7002"],["Q4","2N7002"],["R1","50m 1% 1W"],["R2","1R 0.1%"],["R3","1k 0.1% 25ppm"],["R4","100k"],["R5","100k"],["R6","100k"],["R7","100k"],["R8","10k"],["R9","4.7k"],["R10","4.7k"],["U1","INA228AIDGSR"]]
   },
   module: {
     file: "current_adapter.glb",
     lede: "Shunts and range FETs only. J4 carries Kelvin sense lines to an off-the-shelf INA228 breakout with its own shunt disabled.",
     facts: [["Range", "nA to 2.5 A, 3 ranges"], ["Sense", "J4 to SparkFun or Adafruit INA228"], ["Logger header", "3V3 GND CTL_H CTL_M"], ["Parts", "18 + 4 mounting holes"]],
-    parts: [["C1","22u X7R 10V"],["D1","BAS416"],["D2","BAS416"],["J1","VIN_IN"],["J2","DUT_OUT"],["J3","LOGGER"],["J4","SENSE"],["Q1","DMP2008USS"],["Q2","DMP2037U"],["Q3","2N7002"],["Q4","2N7002"],["R1","50m 1% 1W"],["R2","1R 0.1%"],["R3","1k 0.1% 25ppm"],["R4","100k"],["R5","100k"],["R6","100k"],["R7","100k"]]
+    parts: [["C1","22u X5R 25V"],["D1","BAS416"],["D2","BAS416"],["J1","VIN_IN"],["J2","DUT_OUT"],["J3","LOGGER"],["J4","SENSE"],["Q1","DMP2008USS"],["Q2","DMP2035U-7"],["Q3","2N7002"],["Q4","2N7002"],["R1","50m 1% 1W"],["R2","1R 0.1%"],["R3","1k 0.1% 25ppm"],["R4","100k"],["R5","100k"],["R6","100k"],["R7","100k"]]
   }
 };
 const ROLE = {

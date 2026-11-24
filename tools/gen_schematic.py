@@ -137,9 +137,9 @@ part("D2", "D", "BAS416", "Diode_SMD:D_SOD-323", 40.64, 106.68, {"2": "NODE_B", 
 part("Q1", "PMOS_SO8", "DMP2008USS", "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", 91.44, 63.5,
      {"1": "NODE_A", "2": "NODE_A", "3": "NODE_A", "4": "GH", "5": "DUT_VDD", "6": "DUT_VDD", "7": "DUT_VDD", "8": "DUT_VDD"},
      "Q_H: bypasses R2+R3 (high range)")
-part("Q2", "PMOS_SOT23", "DMP2037U", FP_SOT23, 91.44, 101.6, {"1": "GM", "2": "NODE_B", "3": "DUT_VDD"},
+part("Q2", "PMOS_SOT23", "DMP2035U-7", FP_SOT23, 91.44, 101.6, {"1": "GM", "2": "NODE_B", "3": "DUT_VDD"},
      "Q_M: bypasses R3 (mid range)")
-part("C1", "C", "22u X7R 10V", "Capacitor_SMD:C_1206_3216Metric", 116.84, 127.0, {"1": "DUT_VDD", "2": "GND"},
+part("C1", "C", "22u X5R 25V", "Capacitor_SMD:C_1206_3216Metric", 116.84, 127.0, {"1": "DUT_VDD", "2": "GND"},
      "C_out, supplies DUT wake-up transient")
 part("J2", "Conn_1x02", "DUT_OUT", TB, 142.24, 124.46,
      {"1": "DUT_VDD", "2": "GND"}, "To STM32 IDD jumper / VDD")

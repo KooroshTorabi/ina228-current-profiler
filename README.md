@@ -98,14 +98,19 @@ See [docs/design.md](docs/design.md) for the design notes: wake-up transients, l
 - **Fabrication:** `fab/gerbers.zip` (Gerbers + drill) and `fab/positions_top.csv` in each hardware folder.
 - **3D:** `3d/*.step` for any CAD tool, plus `3d/*.glb` with copper, mask and silkscreen textures for any glTF viewer (Blender, online glTF viewers).
 
+## Ordering assembled boards
+
+Variant A is ready to order fully assembled from JLCPCB: Gerbers, BOM with LCSC part numbers, and the pick-and-place file are in [`hardware/jlcpcb/`](hardware/jlcpcb). Settings, part list, fallback parts and what to check in the placement preview are in [docs/ordering.md](docs/ordering.md).
+
 ## Repository layout
 
 ```
-hardware/            variant A: KiCad project, fab/, 3d/, schematic.pdf, BOM.csv
+hardware/            variant A: KiCad project, fab/, 3d/, jlcpcb/, schematic.pdf, BOM.csv
 hardware-module/     variant B: same structure
 docs/
   design.md          design notes and calibration procedure
   module.md          variant B: preparing and wiring the breakout
+  ordering.md        ordering variant A assembled (JLCPCB)
   integrated/ module/  schematic, PCB and 3D renders
   viewer/            interactive 3D viewer (GitHub Pages)
 firmware/            logger firmware (planned)
@@ -118,6 +123,7 @@ tools/
   render_3d.py       PNG renders of the GLB
   glb2stl.py         one-colour STL for GitHub's 3D viewer
   build_pcb.sh       runs all of the above and exports fab files
+  jlcpcb.py          JLCPCB BOM + CPL for assembled variant-A boards
 ```
 
 ## Logger connector (J3, variant A)

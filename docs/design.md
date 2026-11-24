@@ -8,7 +8,7 @@ The span from nA to 2.5 A covers about nine decades, which no single shunt can c
 
 - **Topology:** the shunts are in series and high-side. The INA228 always measures VIN → DUT_VDD, so the firmware only changes the shunt value and ADCRANGE for each range.
 - **Q1 (DMP2008USS):** bypasses R2 + R3. Its datasheet gives Rds(on) ≤ 11 mΩ at Vgs = −2.5 V, and it is lower at −3.3 V. In range H the total is about 50 mΩ + Rds(Q1).
-- **Q2 (DMP2037U):** bypasses R3. Its Rds(on) of about 43 mΩ is small next to R2 = 1 Ω and is removed by calibration.
+- **Q2 (DMP2035U-7):** bypasses R3. Its Rds(on) of at most 30 mΩ at −2.5 V is small next to R2 = 1 Ω and is removed by calibration.
 - **Gate drive:** each P-FET gate has a 100 k pull-up and is pulled low by a 2N7002 when its CTL line is HIGH.
   - **The pull-ups (R4, R5) go to VIN, upstream of IN+.** If they went to the FET source, their current would pass through the shunts and be measured.
 - **Reset default:** R6 and R7 hold CTL_H and CTL_M HIGH, so the board powers up in the high range. This prevents the DUT from browning out before the firmware takes control.

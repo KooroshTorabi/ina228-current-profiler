@@ -75,7 +75,7 @@
    "3": "DUT_VDD"
   },
   "fp": "Package_TO_SOT_SMD:SOT-23",
-  "val": "DMP2037U",
+  "val": "DMP2035U-7",
   "uuid": "64524ef5-68de-5aa3-be94-8624b4ace9be"
  },
  "C1": {
@@ -84,7 +84,7 @@
    "2": "GND"
   },
   "fp": "Capacitor_SMD:C_1206_3216Metric",
-  "val": "22u X7R 10V",
+  "val": "22u X5R 25V",
   "uuid": "08db069c-e426-5aad-b95d-8fb366307c6a"
  },
  "J2": {
