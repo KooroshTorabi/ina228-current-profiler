@@ -1,11 +1,12 @@
 # Generates the PCB (placement + hand-routed measurement-critical nets).
 # Remaining low-current nets are routed with Freerouting (see tools/route.sh).
-# Usage: /usr/bin/python3 tools/gen_pcb.py <out.kicad_pcb>
+# Usage: /usr/bin/python3 tools/gen_pcb.py <out.kicad_pcb> [integrated|module]
 import json, os, sys
 import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-HW = os.path.join(HERE, "..", "hardware")
+VARIANT = sys.argv[2] if len(sys.argv) > 2 else "integrated"
+HW = os.path.join(HERE, "..", "hardware" if VARIANT == "integrated" else "hardware-module")
 FPLIB = os.environ.get("KICAD_FP", "/usr/share/kicad/footprints")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "kicad", "current_meter.kicad_pcb")
 
@@ -41,6 +42,11 @@ PLACE = {
     "R10": (145.4, 134.5, 270), "J3": (121, 143, 90),
     "H1": (103.6, 103.6 - DY, 0), "H2": (140, 103.6 - DY, 0), "H3": (158.4, 145.4 - DY, 0), "H4": (103.6, 145.4 - DY, 0),
 }
+if VARIANT == "module":
+    for r in ("U1", "C2", "R8", "R9", "R10"):
+        del PLACE[r]
+    PLACE["J3"] = (113, 143, 90)
+    PLACE["J4"] = (140, 132, 90)
 FP = {}
 for ref, (x, y, rot) in PLACE.items():
     p = parts[ref]
@@ -106,6 +112,18 @@ W, H = 62, 49
 rect = pcbnew.PCB_SHAPE(board); rect.SetShape(pcbnew.SHAPE_T_RECT)
 rect.SetStart(V(100, 100)); rect.SetEnd(V(100 + W, 100 + H)); rect.SetLayer(pcbnew.Edge_Cuts); rect.SetWidth(mm(0.1))
 board.Add(rect)
+# keep router tracks/vias away from the board edge (Freerouting ignores KiCad's edge clearance)
+KO = 0.7
+for (x0, y0, x1, y1) in [(100, 100, 100 + W, 100 + KO), (100, 100 + H - KO, 100 + W, 100 + H),
+                         (100, 100, 100 + KO, 100 + H), (100 + W - KO, 100, 100 + W, 100 + H)]:
+    ko = pcbnew.ZONE(board)
+    ko.SetIsRuleArea(True); ko.SetDoNotAllowTracks(True); ko.SetDoNotAllowVias(True)
+    ko.SetDoNotAllowCopperPour(False); ko.SetDoNotAllowPads(False); ko.SetDoNotAllowFootprints(False)
+    ls = pcbnew.LSET(); ls.AddLayer(pcbnew.F_Cu); ls.AddLayer(pcbnew.B_Cu); ko.SetLayerSet(ls)
+    o = ko.Outline(); o.NewOutline()
+    for (x, y) in [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]:
+        o.Append(mm(x), mm(y))
+    board.Add(ko)
 
 # ---- VIN: J1 -> R1 (2 mm), pull-ups R4/R5 tapped upstream of R1, Kelvin IN+ from R1 pad 1 ----
 j11 = pad("J1", "1"); r11 = pad("R1", "1")
@@ -114,9 +132,13 @@ r41 = pad("R4", "1")
 track([(r41[0], j11[1]), r41], 0.3, "VIN")
 track([pad("R4", "1"), pad("R5", "1")], 0.3, "VIN")
 # Kelvin IN+: leaves R1 pad1 on its inner edge, runs along y=127 to U1 pin 10
-u10 = pad("U1", "10"); u9 = pad("U1", "9"); u8 = pad("U1", "8")
 kx = r11[0]
-track([(kx, r11[1]), (kx, Y(127)), (152.5, Y(127)), (152.5, u10[1]), u10], 0.2, "VIN")
+if VARIANT == "integrated":
+    u10 = pad("U1", "10"); u9 = pad("U1", "9"); u8 = pad("U1", "8")
+    track([(kx, r11[1]), (kx, Y(127)), (152.5, Y(127)), (152.5, u10[1]), u10], 0.2, "VIN")
+else:
+    s_plus = pad("J4", "1"); s_minus = pad("J4", "2")
+    track([(kx, r11[1]), (kx, Y(127)), (s_plus[0], Y(127)), s_plus], 0.3, "VIN")
 
 # ---- NODE_A: R1 pad2 -> Q1 sources (2 mm trunk), and to R2 / D1 (0.4 mm) ----
 r12 = pad("R1", "2"); s_pads = [pad("Q1", n) for n in "123"]
@@ -145,8 +167,11 @@ track([r32, (135.5, r32[1]), (135.5, Y(120.5)), (bx, Y(120.5))], 0.4, "DUT_VDD")
 track([(bx, Y(120.5)), c11], 0.4, "DUT_VDD")
 track([d2k, (bx, d2k[1])], 0.4, "DUT_VDD")
 # Kelvin IN- and VBUS from J2 pad 1
-track([j21, (j21[0], u9[1]), u9], 0.2, "DUT_VDD")
-track([(151.5, u9[1]), (151.5, u8[1]), u8], 0.2, "DUT_VDD")
+if VARIANT == "integrated":
+    track([j21, (j21[0], u9[1]), u9], 0.2, "DUT_VDD")
+    track([(151.5, u9[1]), (151.5, u8[1]), u8], 0.2, "DUT_VDD")
+else:
+    track([j21, (j21[0], Y(129)), (s_minus[0], Y(129)), s_minus], 0.3, "DUT_VDD")
 
 # ---- NODE_B: R2 -> R3, D1 K, D2 A, Q2 source ----
 r22 = pad("R2", "2"); r31 = pad("R3", "1"); d1k = pad("D1", "1"); d2a = pad("D2", "2"); q2s = pad("Q2", "2")
@@ -155,6 +180,14 @@ track([d1k, d2a], 0.4, "NODE_B")
 track([(129, d1k[1]), (129, r22[1])], 0.4, "NODE_B")
 track([(130.5, r22[1]), (130.5, Y(116.5)), (136.0, Y(116.5)), (136.0, q2s[1]), q2s], 0.4, "NODE_B")
 
+# ---- GM escape: Q2 gate sits inside the hand-routed area, give the router a via ----
+def via(x, y, netname):
+    v = pcbnew.PCB_VIA(board); v.SetPosition(V(round(x, 4), round(y, 4))); v.SetWidth(mm(0.6)); v.SetDrill(mm(0.3))
+    v.SetNet(net(netname)); v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu); v.SetLocked(True); board.Add(v)
+q2g = pad("Q2", "1")
+track([q2g, (q2g[0], q2g[1] - 1.65)], 0.25, "GM")
+via(q2g[0], q2g[1] - 1.65, "GM")
+
 # ---- silkscreen labels ----
 def silk(text, x, y, size=1.0, angle=0, layer=pcbnew.F_SilkS):
     t = pcbnew.PCB_TEXT(board); t.SetText(text); t.SetPosition(V(x, y)); t.SetLayer(layer)
@@ -162,10 +195,19 @@ def silk(text, x, y, size=1.0, angle=0, layer=pcbnew.F_SilkS):
 j12 = pad("J1", "2"); j22 = pad("J2", "2")
 silk("VIN", 113.2, j11[1], 0.8, 90); silk("GND", 113.2, j12[1], 0.8, 90)
 silk("DUT", 149.0, j21[1], 0.8, 90); silk("GND", 149.0, j22[1], 0.8, 90)
-silk("INA228 current profiler", 147, Y(140.3), 0.9)
-silk("nA - 2.5 A  rev A", 147, Y(141.8), 0.8)
-for i, s_ in enumerate(["3V3", "GND", "SDA", "SCL", "ALRT", "CTLH", "CTLM"]):
-    silk(s_, 121 + 2.54 * i, Y(143) - 3.4, 0.8, 90)
+if VARIANT == "integrated":
+    silk("INA228 current profiler", 147, Y(140.3), 0.9)
+    silk("nA - 2.5 A  rev A", 147, Y(141.8), 0.8)
+    for i, s_ in enumerate(["3V3", "GND", "SDA", "SCL", "ALRT", "CTLH", "CTLM"]):
+        silk(s_, 121 + 2.54 * i, Y(143) - 3.4, 0.8, 90)
+else:
+    silk("INA228 module adapter", 145, Y(140.3), 0.9)
+    silk("nA - 2.5 A  rev A", 145, Y(141.8), 0.8)
+    for i, s_ in enumerate(["3V3", "GND", "CTLH", "CTLM"]):
+        silk(s_, 113 + 2.54 * i, Y(143) - 3.4, 0.8, 90)
+    for i, s_ in enumerate(["S+", "S-", "GND"]):
+        silk(s_, 140 + 2.54 * i, Y(132) + 3.0, 0.8)
+    silk("to module IN+ / IN-,VBUS", 143, Y(132) + 4.8, 0.8)
 
 emit_tracks()
 board.Save(OUT)

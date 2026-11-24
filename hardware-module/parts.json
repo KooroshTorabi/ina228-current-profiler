@@ -1,0 +1,200 @@
+{
+ "J1": {
+  "nets": {
+   "1": "VIN",
+   "2": "GND"
+  },
+  "fp": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",
+  "val": "VIN_IN",
+  "uuid": "5b78bb7d-15f8-531d-ac75-e6f43edd958b"
+ },
+ "R1": {
+  "nets": {
+   "1": "VIN",
+   "2": "NODE_A"
+  },
+  "fp": "Resistor_SMD:R_2512_6332Metric",
+  "val": "50m 1% 1W",
+  "uuid": "abc3c9ff-e013-5cad-90c6-40c857ff35c3"
+ },
+ "R2": {
+  "nets": {
+   "1": "NODE_A",
+   "2": "NODE_B"
+  },
+  "fp": "Resistor_SMD:R_1206_3216Metric",
+  "val": "1R 0.1%",
+  "uuid": "1164e7a2-10eb-58d5-8c0f-9b4b5631e475"
+ },
+ "R3": {
+  "nets": {
+   "1": "NODE_B",
+   "2": "DUT_VDD"
+  },
+  "fp": "Resistor_SMD:R_0805_2012Metric",
+  "val": "1k 0.1% 25ppm",
+  "uuid": "5eac1b90-1118-5ad1-a071-03c8e53f6a87"
+ },
+ "D1": {
+  "nets": {
+   "2": "NODE_A",
+   "1": "NODE_B"
+  },
+  "fp": "Diode_SMD:D_SOD-323",
+  "val": "BAS416",
+  "uuid": "f8069fe2-1e00-58fe-ae05-8627d73372fd"
+ },
+ "D2": {
+  "nets": {
+   "2": "NODE_B",
+   "1": "DUT_VDD"
+  },
+  "fp": "Diode_SMD:D_SOD-323",
+  "val": "BAS416",
+  "uuid": "d4214e77-747a-5853-8294-bba94184c5f0"
+ },
+ "Q1": {
+  "nets": {
+   "1": "NODE_A",
+   "2": "NODE_A",
+   "3": "NODE_A",
+   "4": "GH",
+   "5": "DUT_VDD",
+   "6": "DUT_VDD",
+   "7": "DUT_VDD",
+   "8": "DUT_VDD"
+  },
+  "fp": "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm",
+  "val": "DMP2008USS",
+  "uuid": "196c5cff-bd94-5606-8395-612f1c540876"
+ },
+ "Q2": {
+  "nets": {
+   "1": "GM",
+   "2": "NODE_B",
+   "3": "DUT_VDD"
+  },
+  "fp": "Package_TO_SOT_SMD:SOT-23",
+  "val": "DMP2037U",
+  "uuid": "64524ef5-68de-5aa3-be94-8624b4ace9be"
+ },
+ "C1": {
+  "nets": {
+   "1": "DUT_VDD",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_1206_3216Metric",
+  "val": "22u X7R 10V",
+  "uuid": "08db069c-e426-5aad-b95d-8fb366307c6a"
+ },
+ "J2": {
+  "nets": {
+   "1": "DUT_VDD",
+   "2": "GND"
+  },
+  "fp": "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",
+  "val": "DUT_OUT",
+  "uuid": "362a0abd-9c3d-5f72-849e-c49df258afe1"
+ },
+ "R4": {
+  "nets": {
+   "1": "VIN",
+   "2": "GH"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "100k",
+  "uuid": "71ba7660-23d9-54ba-bb89-4490c32f1453"
+ },
+ "Q3": {
+  "nets": {
+   "1": "CTL_H",
+   "3": "GH",
+   "2": "GND"
+  },
+  "fp": "Package_TO_SOT_SMD:SOT-23",
+  "val": "2N7002",
+  "uuid": "568385c2-6f03-59dc-abaf-8b613d32558a"
+ },
+ "R5": {
+  "nets": {
+   "1": "VIN",
+   "2": "GM"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "100k",
+  "uuid": "4c7c92a1-d5e7-5642-92c4-5015e2ccfe76"
+ },
+ "Q4": {
+  "nets": {
+   "1": "CTL_M",
+   "3": "GM",
+   "2": "GND"
+  },
+  "fp": "Package_TO_SOT_SMD:SOT-23",
+  "val": "2N7002",
+  "uuid": "39dbcb1e-7dd5-5997-a506-e089b05c7d43"
+ },
+ "R6": {
+  "nets": {
+   "1": "+3V3",
+   "2": "CTL_H"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "100k",
+  "uuid": "66f2ed3b-a290-54d6-b207-a498a179a2aa"
+ },
+ "R7": {
+  "nets": {
+   "1": "+3V3",
+   "2": "CTL_M"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "100k",
+  "uuid": "eeecd1b5-91b6-5166-b063-58dd94cc6ce7"
+ },
+ "J4": {
+  "nets": {
+   "1": "VIN",
+   "2": "DUT_VDD",
+   "3": "GND"
+  },
+  "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
+  "val": "SENSE",
+  "uuid": "221a301e-699a-55de-a1ef-ec57c15f7458"
+ },
+ "J3": {
+  "nets": {
+   "1": "+3V3",
+   "2": "GND",
+   "3": "CTL_H",
+   "4": "CTL_M"
+  },
+  "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
+  "val": "LOGGER",
+  "uuid": "5a69658b-527b-5a84-9b17-e3718af2ddca"
+ },
+ "H1": {
+  "nets": {},
+  "fp": "MountingHole:MountingHole_3.2mm_M3",
+  "val": "M3",
+  "uuid": "d2bf7f98-f08e-5e3a-9797-240ce432ec87"
+ },
+ "H2": {
+  "nets": {},
+  "fp": "MountingHole:MountingHole_3.2mm_M3",
+  "val": "M3",
+  "uuid": "0deb950c-1f7c-5b3a-9722-4b8dcd1a0744"
+ },
+ "H3": {
+  "nets": {},
+  "fp": "MountingHole:MountingHole_3.2mm_M3",
+  "val": "M3",
+  "uuid": "dc9b54a1-afb2-59f7-94b1-b179ed4c85ee"
+ },
+ "H4": {
+  "nets": {},
+  "fp": "MountingHole:MountingHole_3.2mm_M3",
+  "val": "M3",
+  "uuid": "fd781198-bb38-5f79-b5bc-67aad8e4643c"
+ }
+}

@@ -24,6 +24,16 @@ def route_once():
     res = int(re.search(r"\(resolution um (\d+)\)", text).group(1))
     to_mm = lambda v: int(v) / res / 1000.0
     nets = board.GetNetsByName()
+    locked = [(t.GetNetname(), t.GetLayer(), pcbnew.ToMM(t.GetStart().x), pcbnew.ToMM(t.GetStart().y),
+               pcbnew.ToMM(t.GetEnd().x), pcbnew.ToMM(t.GetEnd().y))
+              for t in board.GetTracks() if t.Type() == pcbnew.PCB_TRACE_T and t.IsLocked()]
+    def on_seg(px, py, x1, y1, x2, y2, tol=0.002):
+        dx, dy = x2 - x1, y2 - y1; L2 = dx * dx + dy * dy
+        u = 0 if L2 == 0 else max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / L2))
+        return ((x1 + u * dx - px) ** 2 + (y1 + u * dy - py) ** 2) ** 0.5 < tol
+    def covered(name, layer, a, b):
+        return any(n == name and ly == layer and on_seg(*a, *s4) and on_seg(*b, *s4)
+                   for (n, ly, *s4) in locked)
     net_out = text[text.index("(network_out"):]
     added_t = added_v = 0
     for m in re.finditer(r"\(net (\S+)\n(.*?)\n      \)\n", net_out, re.S):
@@ -36,7 +46,7 @@ def route_once():
             v = list(map(int, wm.group(3).split()))
             pts = [(to_mm(x), -to_mm(y)) for x, y in zip(v[::2], v[1::2])]
             for a, b in zip(pts, pts[1:]):
-                if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 0.01:
+                if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 0.01 or covered(name, LAYER[layer], a, b):
                     continue
                 t = pcbnew.PCB_TRACK(board)
                 t.SetStart(pcbnew.VECTOR2I(mm(a[0]), mm(a[1]))); t.SetEnd(pcbnew.VECTOR2I(mm(b[0]), mm(b[1])))
@@ -50,14 +60,28 @@ def route_once():
             via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
             board.Add(via); added_v += 1
     board.BuildConnectivity()
-    return board, board.GetConnectivity().GetUnconnectedCount(True), added_t, added_v
+    unrouted = board.GetConnectivity().GetUnconnectedCount(True)
+    # copper DRC problems from the router (e.g. edge clearance) count as failures too
+    rpt = base + "_check.rpt"
+    pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    bad = [l for l in open(rpt) if l.startswith("[") and not l.startswith(("[lib_footprint", "[silk", "[text_height"))
+           and "Severity: error" in "".join(open(rpt).read().split(l, 1)[1].splitlines()[:2])]
+    os.remove(rpt)
+    if bad:
+        print("  router DRC issues:", sorted(set(b.split("]")[0] + "]" for b in bad)))
+    return board, unrouted + len(bad), added_t, added_v
 
-for attempt in range(1, 6):
+for attempt in range(1, int(os.environ.get("ROUTE_ATTEMPTS", "5")) + 1):
     board, unrouted, added_t, added_v = route_once()
-    print(f"attempt {attempt}: {added_t} tracks, {added_v} vias, {unrouted} unrouted")
+    print(f"attempt {attempt}: {added_t} tracks, {added_v} vias, {unrouted} problems")
     if unrouted == 0:
         break
 else:
+    rpt = base + "_unrouted.rpt"
+    pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
+    lines = open(rpt).read().split("[unconnected_items]")[1:]
+    for blk in lines:
+        print("  unrouted:", " | ".join(l.strip() for l in blk.splitlines()[2:4]))
     sys.exit("Freerouting did not complete the board")
 nets = board.GetNetsByName()
 

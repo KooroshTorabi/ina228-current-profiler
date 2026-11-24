@@ -1,9 +1,14 @@
 # Generates the KiCad 7 schematic, symbol library and BOM for this project.
-# Usage: python3 tools/gen_schematic.py
-import uuid, os, json
+# Usage: python3 tools/gen_schematic.py [integrated|module]
+#   integrated: INA228 on board (hardware/)
+#   module:     shunt/range-switch adapter for an off-the-shelf INA228 breakout (hardware-module/)
+import uuid, os, json, sys
 
-PROJ = "current_meter"
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "hardware", "kicad")
+VARIANT = sys.argv[1] if len(sys.argv) > 1 else "integrated"
+assert VARIANT in ("integrated", "module")
+PROJ = "current_meter" if VARIANT == "integrated" else "current_adapter"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                   "hardware" if VARIANT == "integrated" else "hardware-module", "kicad")
 os.makedirs(OUT, exist_ok=True)
 NS = uuid.UUID("6f1c2a54-9b0e-4d3c-8a8e-1c0de5ca1e01")
 ROOT = str(uuid.uuid5(NS, "root"))
@@ -81,6 +86,8 @@ def conn(n):
     body = [f'(rectangle (start -1.27 1.27) (end 1.27 {F(-2.54*(n-1)-1.27)}) {st})']
     sym(f"Conn_1x{n:02d}", "J", body, pins, ref_at=(0, 2.54, 0), val_at=(0, -2.54 * n, 0))
 conn(2); conn(7)
+if VARIANT == "module":
+    conn(3); conn(4)
 sym("MountingHole", "H", [f'(circle (center 0 0) (radius 1.27) {st})'], [], ref_at=(2.54, 0.635, 0), val_at=(2.54, -1.27, 0))
 
 def sym_sexpr(name, prefix):
@@ -145,17 +152,28 @@ part("Q4", "NMOS_SOT23", "2N7002", FP_SOT23, 127.0, 109.22, {"1": "CTL_M", "3": 
 part("R6", "R", "100k", FP_R0603, 152.4, 50.8, {"1": "+3V3", "2": "CTL_H"}, "Default: high range ON at reset")
 part("R7", "R", "100k", FP_R0603, 152.4, 96.52, {"1": "+3V3", "2": "CTL_M"}, "Default: mid bypass ON at reset")
 
-# INA228
-part("U1", "INA228", "INA228AIDGSR", "Package_SO:VSSOP-10_3x3mm_P0.5mm", 205.74, 60.96,
-     {"10": "VIN", "9": "DUT_VDD", "8": "DUT_VDD", "6": "+3V3", "7": "GND", "4": "SDA", "5": "SCL",
-      "3": "ALERT", "2": "GND", "1": "GND"}, "I2C addr 0x40 (A0=A1=GND)")
-part("C2", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 238.76, 45.72, {"1": "+3V3", "2": "GND"}, "U1 VS decoupling")
-part("R8", "R", "10k", FP_R0603, 254.0, 45.72, {"1": "+3V3", "2": "ALERT"}, "ALERT open-drain pull-up")
-part("R9", "R", "4.7k", FP_R0603, 266.7, 45.72, {"1": "+3V3", "2": "SDA"}, "I2C pull-up (omit if on logger)")
-part("R10", "R", "4.7k", FP_R0603, 279.4, 45.72, {"1": "+3V3", "2": "SCL"}, "I2C pull-up (omit if on logger)")
-part("J3", "Conn_1x07", "LOGGER", "Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical", 254.0, 96.52,
-     {"1": "+3V3", "2": "GND", "3": "SDA", "4": "SCL", "5": "ALERT", "6": "CTL_H", "7": "CTL_M"},
-     "To logger MCU: 3V3 GND SDA SCL ALERT CTL_H CTL_M")
+if VARIANT == "integrated":
+    # INA228
+    part("U1", "INA228", "INA228AIDGSR", "Package_SO:VSSOP-10_3x3mm_P0.5mm", 205.74, 60.96,
+         {"10": "VIN", "9": "DUT_VDD", "8": "DUT_VDD", "6": "+3V3", "7": "GND", "4": "SDA", "5": "SCL",
+          "3": "ALERT", "2": "GND", "1": "GND"}, "I2C addr 0x40 (A0=A1=GND)")
+    part("C2", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 238.76, 45.72, {"1": "+3V3", "2": "GND"}, "U1 VS decoupling")
+    part("R8", "R", "10k", FP_R0603, 254.0, 45.72, {"1": "+3V3", "2": "ALERT"}, "ALERT open-drain pull-up")
+    part("R9", "R", "4.7k", FP_R0603, 266.7, 45.72, {"1": "+3V3", "2": "SDA"}, "I2C pull-up (omit if on logger)")
+    part("R10", "R", "4.7k", FP_R0603, 279.4, 45.72, {"1": "+3V3", "2": "SCL"}, "I2C pull-up (omit if on logger)")
+    part("J3", "Conn_1x07", "LOGGER", "Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical", 254.0, 96.52,
+         {"1": "+3V3", "2": "GND", "3": "SDA", "4": "SCL", "5": "ALERT", "6": "CTL_H", "7": "CTL_M"},
+         "To logger MCU: 3V3 GND SDA SCL ALERT CTL_H CTL_M")
+
+else:
+    # Off-the-shelf INA228 breakout (e.g. SparkFun SEN-31438 with SHUNT jumper opened,
+    # or Adafruit 5832 with its 15 mOhm shunt removed) senses this board via J4.
+    part("J4", "Conn_1x03", "SENSE", "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical", 205.74, 60.96,
+         {"1": "VIN", "2": "DUT_VDD", "3": "GND"},
+         "Kelvin sense out: 1 = S+ to module IN+, 2 = S- to module IN- and VBUS, 3 = GND")
+    part("J3", "Conn_1x04", "LOGGER", "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical", 254.0, 96.52,
+         {"1": "+3V3", "2": "GND", "3": "CTL_H", "4": "CTL_M"},
+         "To logger MCU: 3V3 GND CTL_H CTL_M")
 
 for i, (hx, hy) in enumerate([(205.74, 116.84), (218.44, 116.84), (231.14, 116.84), (243.84, 116.84)]):
     part(f"H{i+1}", "MountingHole", "M3", "MountingHole:MountingHole_3.2mm_M3", hx, hy, {}, "M3 mounting hole")
@@ -202,20 +220,34 @@ for p in P:
         items.append(f'(label "{net}" (at {F(ex)} {F(ey)} {la}) (fields_autoplaced) '
                      f'(effects (font (size 1.27 1.27)) (justify {just})) (uuid "{U()}"))')
 
-notes = [
+notes_integrated = [
     (20.32, 154.94, "INA228 auto-ranging current meter  |  ranges: L = R1+R2+R3 (~1001 ohm, both FETs off),"),
     (20.32, 160.02, "M = R1+R2+Rds(Q2) (Q2 on), H = R1+Rds(Q1) (Q1 on).  Logger: CTL_x HIGH = bypass FET ON. Defaults ON at reset."),
     (20.32, 165.1, "Route U1 IN+ / IN- as Kelvin traces: IN+ from J1 side of R1, IN- from the J2 side of R3. Keep R3/D1/D2/Q1/Q2 area clean (leakage!)."),
     (20.32, 170.18, "R4/R5 must go to VIN (upstream of IN+), NOT to the FET source, otherwise their current is measured. VIN max ~6V (FET Vgs)."),
     (20.32, 175.26, "Calibrate each range with a known load; zero-calibrate range L with DUT disconnected (INA bias current, FET/diode leakage)."),
 ]
+notes_module = [
+    (20.32, 154.94, "Shunt / range-switch adapter for an off-the-shelf INA228 breakout. Ranges: L = R1+R2+R3, M = R1+R2+Rds(Q2), H = R1+Rds(Q1)."),
+    (20.32, 160.02, "J4 is a Kelvin sense output: S+ from the R1 pad, S- from the DUT terminal. No load current flows through the module."),
+    (20.32, 165.1, "Module prep: SparkFun SEN-31438 -> open the SHUNT jumper. Adafruit 5832 -> remove the 15 mOhm shunt. Tie module VBUS to S-."),
+    (20.32, 170.18, "R4/R5 go to VIN upstream of the S+ tap. Logger: CTL_x HIGH = bypass FET ON (default at reset). VIN max ~6V (FET Vgs)."),
+    (20.32, 175.26, "Keep sense wires short and twisted. Calibrate each range with a known load; zero-calibrate range L with the DUT disconnected."),
+]
+notes = notes_integrated if VARIANT == "integrated" else notes_module
 for (x, y, t) in notes:
     items.append(f'(text "{t}" (at {F(x)} {F(y)} 0) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "{U()}"))')
 
+if VARIANT == "integrated":
+    TITLE = "INA228 auto-ranging current meter (nA - 2.5A)"
+    COMMENT = "High-side, 3 shunts + P-FET range switching, logger MCU over I2C"
+else:
+    TITLE = "Shunt + range-switch adapter for INA228 module (nA - 2.5A)"
+    COMMENT = "High-side, 3 shunts + P-FET range switching, Kelvin sense to external INA228 breakout"
 libsyms = " ".join(sym_sexpr(n, "meter:") for n in SYMS)
 sch = (f'(kicad_sch (version 20230121) (generator eeschema) (uuid "{ROOT}") (paper "A4") '
-       f'(title_block (title "INA228 auto-ranging current meter (nA - 2.5A)") (date "2026-11-24") (rev "A") '
-       f'(comment 1 "High-side, 3 shunts + P-FET range switching, logger MCU over I2C")) '
+       f'(title_block (title "{TITLE}") (date "2026-11-24") (rev "A") '
+       f'(comment 1 "{COMMENT}")) '
        f'(lib_symbols {libsyms}) ' + " ".join(items) +
        f' (sheet_instances (path "/" (page "1"))))')
 open(f"{OUT}/{PROJ}.kicad_sch", "w").write(sch)
