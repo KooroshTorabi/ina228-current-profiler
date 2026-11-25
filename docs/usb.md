@@ -61,6 +61,20 @@ J1 and J2 are wired pin to pin, like a short extension:
 - **VID:PID** is `1209:0001`, the pid.codes test ID for development. Change it in `usb_descriptors.c` before selling boards.
 - **Grounds:** the PC's ground and the charger's ground are joined on the board (the INA228 needs a common reference). This is the same as with any USB tester connected to a PC.
 
+## PC app
+
+https://kourosh.site/ina228-current-profiler/app/ (source: [app/index.html](app/index.html)). One page with no install, for Chrome, Edge or Opera on a desktop:
+
+- **Live:** voltage, current and power charts (10 s to the whole session, peaks kept at every zoom), plus mAh, Wh and time.
+- **Charger:** what the charger negotiates (USB PD level, PPS, Type-C current, QC, Apple, BC1.2) from the CC/D± voltages and the bus voltage.
+- **Session report:**
+  - charging phases (start-up, fast charge, taper, full) and the voltage levels used;
+  - time to deliver half and 80 % of the energy, and the draw once full;
+  - charger + cable resistance from the voltage sag under load;
+  - battery capacity and health estimated from the energy delivered and the battery % at the start and end.
+- **Exports and files:** CSV data, a JSON report and print/PDF. It also opens CSV logs from `host/meter.py`.
+- **Demo:** a demo session (a phone charging on 9 V PD, sped up 40×) shows everything without a board.
+
 ## Programming
 
 - **New chips:** the STM32G0B1 starts ST's USB DFU bootloader when its flash is empty. Connect J3 and run `make dfu` (dfu-util) or use STM32CubeProgrammer. No ST-Link needed.

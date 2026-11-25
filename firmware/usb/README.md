@@ -82,6 +82,10 @@ Settings are kept in the last 2 KB flash page. A blank or invalid page means def
 - **The conversion right after a switch is dropped.** Charge and energy hold the last good reading over that gap.
 - **Thresholds and hysteresis:** the gap between 3.0 and 3.8 A keeps the ranges from toggling.
 
+## PC app
+
+The browser app at https://kourosh.site/ina228-current-profiler/app/ connects to the meter directly (Web Serial) and does the plotting and reports. See [docs/usb.md](../../docs/usb.md#pc-app).
+
 ## Host script
 
 ```sh

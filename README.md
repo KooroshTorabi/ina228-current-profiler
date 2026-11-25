@@ -31,6 +31,7 @@ A separate in-line tester for chargers, phones and power banks, built on the sam
 - **USB PD 3.1 EPR (48 V):** the INA228 (85 V) and the 51 V TVS cover it. The plug is rated 20 V, see [docs/usb.md](docs/usb.md#will-usb-pd-31-48-v-damage-it).
 - **Pass-through:** CC1, CC2, D+, D−, SBU1 and SBU2 go straight through, so PD/QC negotiation and e-marked cables work as with the cable alone.
 - **Programming:** STM32G0B1 with TinyUSB, flashed over USB (DFU). No programmer needed.
+- **PC app:** https://kourosh.site/ina228-current-profiler/app/ opens in Chrome or Edge and talks to the meter over Web Serial, with nothing to install. It shows live V/A/W charts, decodes what the charger negotiates, and builds a charge-session report: phases, voltage levels, charger + cable resistance, and an estimate of the battery's capacity and health. It also has a demo session and opens CSV logs. Source: [`docs/app/index.html`](docs/app/index.html).
 - **Files:** [`hardware-usb/`](hardware-usb) · [notes](docs/usb.md) · [firmware](firmware/usb)
 
 ### Why not just change the breakout's shunt?
@@ -151,6 +152,7 @@ docs/
   ordering.md        ordering variants A, C and rev D assembled (JLCPCB)
   integrated/ module/ smart/ usb/  schematic, PCB and 3D renders
   viewer/            interactive 3D viewer (served at kourosh.site)
+  app/               rev D PC app: live charts and charge reports in the browser (Web Serial)
 firmware/
   smart/             variant C firmware (STM32G030, bare metal) + host scripts for Pi / PC
   usb/               rev D firmware (STM32G0B1, TinyUSB CDC) + host/meter.py
@@ -191,7 +193,7 @@ Variant C's J3 is `3V3, GND, SDA, SCL, TX, RX`: I2C slave 0x48 and UART 921600 8
 - [x] 3D models
 - [x] Variant C firmware with auto-ranging (compiles; not yet run on hardware)
 - [x] Rev D (USB-C power meter): schematic, PCB, 3D, JLCPCB files, firmware (compiles; not yet fabricated or run)
-- [ ] PC app for rev D: live plots, charge sessions, reports
+- [x] PC app for rev D (browser, Web Serial): live plots, protocol decoding, charge-session report (tested with the built-in demo, not yet with a board)
 - [ ] Logger firmware for variants A/B
 - [ ] Calibration and validation against a reference meter
 
