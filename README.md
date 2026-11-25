@@ -63,13 +63,13 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 
 ## 3D models
 
-**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer . Turn the board, zoom, switch between the three variants, and point at a part to see its name and value.
+**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer (variant C directly: [`?v=smart`](https://kourosh.site/ina228-current-profiler/viewer/index.html?v=smart)). Turn the board, zoom, switch between the three variants, and point at a part to see its name and value.
 
 **STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl), [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) or [`hardware-smart/3d/current_smart.stl`](hardware-smart/3d/current_smart.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
 
-| Variant A, bottom | Variant B, bottom |
-|---|---|
-| ![A bottom](docs/integrated/3d_bottom.png) | ![B bottom](docs/module/3d_bottom.png) |
+| Variant A, bottom | Variant B, bottom | Variant C, bottom |
+|---|---|---|
+| ![A bottom](docs/integrated/3d_bottom.png) | ![B bottom](docs/module/3d_bottom.png) | ![C bottom](docs/smart/3d_bottom.png) |
 
 - **STEP** (`hardware*/3d/*.step`): opens in any CAD tool (FreeCAD, Fusion, SolidWorks) for enclosure design.
 - **STL** (`hardware*/3d/*.stl`): one-colour mesh in mm, shown by GitHub and accepted by any slicer or mesh tool.
