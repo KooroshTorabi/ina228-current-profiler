@@ -1,14 +1,15 @@
 # Generates the KiCad 7 schematic, symbol library and BOM for this project.
-# Usage: python3 tools/gen_schematic.py [integrated|module|smart]
+# Usage: python3 tools/gen_schematic.py [integrated|module|smart|usb]
 #   integrated: INA228 on board (hardware/)
 #   module:     shunt/range-switch adapter for an off-the-shelf INA228 breakout (hardware-module/)
 #   smart:      INA228 + on-board STM32G030 that does the ranging; host reads one number (hardware-smart/)
+#   usb:        rev D, USB-C pass-through tester (plug in, receptacle out, 4-48 V / 5 A), USB to the PC (hardware-usb/)
 import uuid, os, json, sys
 
 VARIANT = sys.argv[1] if len(sys.argv) > 1 else "integrated"
-assert VARIANT in ("integrated", "module", "smart")
-PROJ = {"integrated": "current_meter", "module": "current_adapter", "smart": "current_smart"}[VARIANT]
-HWDIR = {"integrated": "hardware", "module": "hardware-module", "smart": "hardware-smart"}[VARIANT]
+assert VARIANT in ("integrated", "module", "smart", "usb")
+PROJ = {"integrated": "current_meter", "module": "current_adapter", "smart": "current_smart", "usb": "current_usb"}[VARIANT]
+HWDIR = {"integrated": "hardware", "module": "hardware-module", "smart": "hardware-smart", "usb": "hardware-usb"}[VARIANT]
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", HWDIR, "kicad")
 os.makedirs(OUT, exist_ok=True)
 NS = uuid.UUID("6f1c2a54-9b0e-4d3c-8a8e-1c0de5ca1e01")
@@ -123,6 +124,46 @@ if VARIANT == "smart":
          f'(polyline (pts (xy 1.778 0.508) (xy 3.048 -0.762)) {st})',
          f'(polyline (pts (xy 1.778 -0.254) (xy 3.048 -1.524)) {st})'],
         [("1", "K", 0, -3.81, 90, 2.54, False), ("2", "A", 0, 3.81, 270, 2.54, False)])
+def box(name, ref, left, right, half_w=10.16, pitch=2.54):
+    n = max(len(left), len(right))
+    top = pitch * (n - 1) / 2
+    pins = [(num, nm, -half_w - 2.54, top - pitch * i, 0, 2.54, False) for i, (num, nm) in enumerate(left) if num]
+    pins += [(num, nm, half_w + 2.54, top - pitch * i, 180, 2.54, False) for i, (num, nm) in enumerate(right) if num]
+    h = top + pitch
+    sym(name, ref, [f'(rectangle (start {F(-half_w)} {F(h)}) (end {F(half_w)} {F(-h)}) (stroke (width 0.254) (type default)) (fill (type background)))'],
+        pins, show_names=True, ref_at=(-half_w, h + 1.27, 0), val_at=(-half_w, -h - 1.27, 0))
+if VARIANT == "usb":
+    conn(5)
+    # USB-C plug, 24 pins + shell (straddle mount)
+    box("USB_C_Plug", "J",
+        [("A4", "VBUS"), ("A9", "VBUS"), ("B4", "VBUS"), ("B9", "VBUS"), ("A5", "CC"), ("B5", "VCONN"),
+         ("A6", "D+"), ("A7", "D-"), ("B6", "D+_B"), ("B7", "D-_B"), ("A8", "SBU1"), ("B8", "SBU2")],
+        [("A1", "GND"), ("A12", "GND"), ("B1", "GND"), ("B12", "GND"), ("S1", "SHIELD"),
+         ("A2", "TX1+"), ("A3", "TX1-"), ("B11", "RX1+"), ("B10", "RX1-"),
+         ("B2", "TX2+"), ("B3", "TX2-"), ("A11", "RX2+"), ("A10", "RX2-")], half_w=7.62)
+    # USB-C receptacle, USB 2.0 (16 pins + shell)
+    box("USB_C_Receptacle", "J",
+        [("A4", "VBUS"), ("A9", "VBUS"), ("B4", "VBUS"), ("B9", "VBUS"), ("A5", "CC1"), ("B5", "CC2"),
+         ("A6", "D+"), ("B6", "D+"), ("A7", "D-"), ("B7", "D-"), ("A8", "SBU1"), ("B8", "SBU2")],
+        [("A1", "GND"), ("A12", "GND"), ("B1", "GND"), ("B12", "GND"), ("S1", "SHIELD")], half_w=7.62)
+    # STM32G0B1CBT6, LQFP-48 (pin numbers from the datasheet's LQFP48 column)
+    box("STM32G0B1C", "U",
+        [("6", "VDD/VDDA"), ("4", "VBAT"), ("5", "VREF+"), ("10", "PF2-NRST"), ("11", "PA0"), ("12", "PA1"),
+         ("13", "PA2"), ("14", "PA3"), ("15", "PA4"), ("16", "PA5"), ("17", "PA6"), ("18", "PA7"),
+         ("28", "PA8"), ("29", "PA9"), ("32", "PA10"), ("33", "PA11"), ("34", "PA12"), ("35", "PA13"),
+         ("36", "PA14-BOOT0"), ("37", "PA15"), ("1", "PC13"), ("2", "PC14"), ("3", "PC15"), ("7", "VSS/VSSA")],
+        [("19", "PB0"), ("20", "PB1"), ("21", "PB2"), ("42", "PB3"), ("43", "PB4"), ("44", "PB5"),
+         ("45", "PB6"), ("46", "PB7"), ("47", "PB8"), ("48", "PB9"), ("22", "PB10"), ("23", "PB11"),
+         ("24", "PB12"), ("25", "PB13"), ("26", "PB14"), ("27", "PB15"), ("30", "PC6"), ("31", "PC7"),
+         ("38", "PD0"), ("39", "PD1"), ("40", "PD2"), ("41", "PD3"), ("8", "PF0"), ("9", "PF1")], half_w=12.7)
+    box("XC6206", "U", [("3", "VIN"), ("1", "GND")], [("2", "VOUT")], half_w=5.08)
+    box("USBLC6-2SC6", "U", [("1", "I/O1"), ("3", "I/O2"), ("5", "VBUS")], [("6", "I/O1"), ("4", "I/O2"), ("2", "GND")], half_w=5.08)
+    sym("LED", "D",
+        [f'(polyline (pts (xy -1.27 1.27) (xy 1.27 1.27) (xy 0 -1.27) (xy -1.27 1.27)) {st})',
+         f'(polyline (pts (xy -1.27 -1.27) (xy 1.27 -1.27)) {st})',
+         f'(polyline (pts (xy 1.778 0.508) (xy 3.048 -0.762)) {st})',
+         f'(polyline (pts (xy 1.778 -0.254) (xy 3.048 -1.524)) {st})'],
+        [("1", "K", 0, -3.81, 90, 2.54, False), ("2", "A", 0, 3.81, 270, 2.54, False)])
 sym("MountingHole", "H", [f'(circle (center 0 0) (radius 1.27) {st})'], [], ref_at=(2.54, 0.635, 0), val_at=(2.54, -1.27, 0))
 
 def sym_sexpr(name, prefix):
@@ -161,31 +202,32 @@ FP_R0603 = "Resistor_SMD:R_0603_1608Metric"
 FP_SOT23 = "Package_TO_SOT_SMD:SOT-23"
 TB = "TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal"
 
-# shunt chain
-part("J1", "Conn_1x02", "VIN_IN", TB, 22.86, 40.64,
-     {"1": "VIN", "2": "GND"}, "Supply input (bench PSU / 3.3V)")
-part("R1", "R", "50m 1% 1W", FP_R2512, 63.5, 45.72, {"1": "VIN", "2": "NODE_A"}, "R_H shunt, high range, 4-wire layout")
-part("R2", "R", "1R 0.1%", FP_R1206, 63.5, 76.2, {"1": "NODE_A", "2": "NODE_B"}, "R_M shunt, mid range")
-part("R3", "R", "1k 0.1% 25ppm", FP_R0805, 63.5, 106.68, {"1": "NODE_B", "2": "DUT_VDD"}, "R_L shunt, low (nA/uA) range")
-part("D1", "D", "BAS416", "Diode_SMD:D_SOD-323", 40.64, 76.2, {"2": "NODE_A", "1": "NODE_B"}, "D_M low-leakage clamp across R2")
-part("D2", "D", "BAS416", "Diode_SMD:D_SOD-323", 40.64, 106.68, {"2": "NODE_B", "1": "DUT_VDD"}, "D_L low-leakage clamp across R3")
-part("Q1", "PMOS_SO8", "DMP2008USS", "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", 91.44, 63.5,
-     {"1": "NODE_A", "2": "NODE_A", "3": "NODE_A", "4": "GH", "5": "DUT_VDD", "6": "DUT_VDD", "7": "DUT_VDD", "8": "DUT_VDD"},
-     "Q_H: bypasses R2+R3 (high range)")
-part("Q2", "PMOS_SOT23", "DMP2035U-7", FP_SOT23, 91.44, 101.6, {"1": "GM", "2": "NODE_B", "3": "DUT_VDD"},
-     "Q_M: bypasses R3 (mid range)")
-part("C1", "C", "22u X5R 25V", "Capacitor_SMD:C_1206_3216Metric", 116.84, 127.0, {"1": "DUT_VDD", "2": "GND"},
-     "C_out, supplies DUT wake-up transient")
-part("J2", "Conn_1x02", "DUT_OUT", TB, 142.24, 124.46,
-     {"1": "DUT_VDD", "2": "GND"}, "To STM32 IDD jumper / VDD")
+if VARIANT != "usb":
+    # shunt chain
+    part("J1", "Conn_1x02", "VIN_IN", TB, 22.86, 40.64,
+         {"1": "VIN", "2": "GND"}, "Supply input (bench PSU / 3.3V)")
+    part("R1", "R", "50m 1% 1W", FP_R2512, 63.5, 45.72, {"1": "VIN", "2": "NODE_A"}, "R_H shunt, high range, 4-wire layout")
+    part("R2", "R", "1R 0.1%", FP_R1206, 63.5, 76.2, {"1": "NODE_A", "2": "NODE_B"}, "R_M shunt, mid range")
+    part("R3", "R", "1k 0.1% 25ppm", FP_R0805, 63.5, 106.68, {"1": "NODE_B", "2": "DUT_VDD"}, "R_L shunt, low (nA/uA) range")
+    part("D1", "D", "BAS416", "Diode_SMD:D_SOD-323", 40.64, 76.2, {"2": "NODE_A", "1": "NODE_B"}, "D_M low-leakage clamp across R2")
+    part("D2", "D", "BAS416", "Diode_SMD:D_SOD-323", 40.64, 106.68, {"2": "NODE_B", "1": "DUT_VDD"}, "D_L low-leakage clamp across R3")
+    part("Q1", "PMOS_SO8", "DMP2008USS", "Package_SO:SOIC-8_3.9x4.9mm_P1.27mm", 91.44, 63.5,
+         {"1": "NODE_A", "2": "NODE_A", "3": "NODE_A", "4": "GH", "5": "DUT_VDD", "6": "DUT_VDD", "7": "DUT_VDD", "8": "DUT_VDD"},
+         "Q_H: bypasses R2+R3 (high range)")
+    part("Q2", "PMOS_SOT23", "DMP2035U-7", FP_SOT23, 91.44, 101.6, {"1": "GM", "2": "NODE_B", "3": "DUT_VDD"},
+         "Q_M: bypasses R3 (mid range)")
+    part("C1", "C", "22u X5R 25V", "Capacitor_SMD:C_1206_3216Metric", 116.84, 127.0, {"1": "DUT_VDD", "2": "GND"},
+         "C_out, supplies DUT wake-up transient")
+    part("J2", "Conn_1x02", "DUT_OUT", TB, 142.24, 124.46,
+         {"1": "DUT_VDD", "2": "GND"}, "To STM32 IDD jumper / VDD")
 
-# gate drive (P-FET gate pull-ups go to VIN, upstream of all shunts!)
-part("R4", "R", "100k", FP_R0603, 129.54, 43.18, {"1": "VIN", "2": "GH"}, "Q1 gate pull-up to VIN")
-part("Q3", "NMOS_SOT23", "2N7002", FP_SOT23, 127.0, 63.5, {"1": "CTL_H", "3": "GH", "2": "GND"}, "Q1 gate driver")
-part("R5", "R", "100k", FP_R0603, 129.54, 88.9, {"1": "VIN", "2": "GM"}, "Q2 gate pull-up to VIN")
-part("Q4", "NMOS_SOT23", "2N7002", FP_SOT23, 127.0, 109.22, {"1": "CTL_M", "3": "GM", "2": "GND"}, "Q2 gate driver")
-part("R6", "R", "100k", FP_R0603, 152.4, 50.8, {"1": "+3V3", "2": "CTL_H"}, "Default: high range ON at reset")
-part("R7", "R", "100k", FP_R0603, 152.4, 96.52, {"1": "+3V3", "2": "CTL_M"}, "Default: mid bypass ON at reset")
+    # gate drive (P-FET gate pull-ups go to VIN, upstream of all shunts!)
+    part("R4", "R", "100k", FP_R0603, 129.54, 43.18, {"1": "VIN", "2": "GH"}, "Q1 gate pull-up to VIN")
+    part("Q3", "NMOS_SOT23", "2N7002", FP_SOT23, 127.0, 63.5, {"1": "CTL_H", "3": "GH", "2": "GND"}, "Q1 gate driver")
+    part("R5", "R", "100k", FP_R0603, 129.54, 88.9, {"1": "VIN", "2": "GM"}, "Q2 gate pull-up to VIN")
+    part("Q4", "NMOS_SOT23", "2N7002", FP_SOT23, 127.0, 109.22, {"1": "CTL_M", "3": "GM", "2": "GND"}, "Q2 gate driver")
+    part("R6", "R", "100k", FP_R0603, 152.4, 50.8, {"1": "+3V3", "2": "CTL_H"}, "Default: high range ON at reset")
+    part("R7", "R", "100k", FP_R0603, 152.4, 96.52, {"1": "+3V3", "2": "CTL_M"}, "Default: mid bypass ON at reset")
 
 if VARIANT == "integrated":
     # INA228
@@ -239,6 +281,64 @@ elif VARIANT == "smart":
          {"1": "+3V3", "2": "SWDIO", "3": "SWCLK", "4": "NRST", "5": "GND"},
          "Programming: ST-Link (e.g. Nucleo CN4). Not assembled.")
 
+elif VARIANT == "usb":
+    FP_C0603 = "Capacitor_SMD:C_0603_1608Metric"
+    PLUG = {"A4": "VBUS_IN", "A9": "VBUS_IN", "B4": "VBUS_IN", "B9": "VBUS_IN", "A5": "CC1", "B5": "CC2",
+            "A6": "DP", "A7": "DM", "B6": "NC_J1_B6", "B7": "NC_J1_B7", "A8": "SBU1", "B8": "SBU2",
+            "A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND", "S1": "GND"}
+    for pn in ("A2", "A3", "A10", "A11", "B2", "B3", "B10", "B11"):
+        PLUG[pn] = f"NC_J1_{pn}"
+    part("J1", "USB_C_Plug", "USB-C plug (IN)", "Connector_USB:USB_C_Plug_JAE_DX07P024AJ1", 25.4, 60.96, PLUG,
+         "Input: plugs into the charger. Pass-through pin to pin, like a short extension.")
+    part("J2", "USB_C_Receptacle", "USB-C receptacle (OUT)", "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", 132.08, 60.96,
+         {"A4": "VBUS_OUT", "A9": "VBUS_OUT", "B4": "VBUS_OUT", "B9": "VBUS_OUT", "A5": "CC1", "B5": "CC2",
+          "A6": "DP", "B6": "DP", "A7": "DM", "B7": "DM", "A8": "SBU1", "B8": "SBU2",
+          "A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND", "S1": "GND"},
+         "Output: the phone / device cable plugs in here. CC1/CC2/D+/D-/SBU wired straight to J1.")
+    part("R1", "R", "10m 1% 2W", FP_R2512, 63.5, 33.02, {"1": "VBUS_IN", "2": "VBUS_OUT"}, "Shunt, high side, Kelvin taps to U1")
+    part("D1", "D", "SMBJ51A", "Diode_SMD:D_SMB", 45.72, 45.72, {"1": "VBUS_IN", "2": "GND"},
+         "TVS: 51 V stand-off (PD 3.1 EPR 48 V), clamps below the INA228 85 V limit")
+    part("U1", "INA228", "INA228AIDGSR", "Package_SO:VSSOP-10_3x3mm_P0.5mm", 86.36, 45.72,
+         {"10": "VBUS_IN", "9": "VBUS_OUT", "8": "VBUS_OUT", "6": "+3V3", "7": "GND", "4": "SDA", "5": "SCL",
+          "3": "ALERT", "2": "GND", "1": "GND"}, "I2C 0x40. Measures bus V on the OUT side, 0-85 V")
+    part("C1", "C", "100n", FP_C0603, 101.6, 30.48, {"1": "+3V3", "2": "GND"}, "U1 VS decoupling")
+    part("R2", "R", "10k", FP_R0603, 111.76, 30.48, {"1": "+3V3", "2": "ALERT"}, "ALERT open-drain pull-up")
+    part("R3", "R", "4.7k", FP_R0603, 119.38, 30.48, {"1": "+3V3", "2": "SDA"}, "I2C pull-up")
+    part("R4", "R", "4.7k", FP_R0603, 127.0, 30.48, {"1": "+3V3", "2": "SCL"}, "I2C pull-up")
+    # CC / D+ / D- monitors: 1M/1M halves the line voltage for the 3.3 V ADC, ~2 Mohm load on the line
+    for i, (sig, adc, x) in enumerate([("CC1", "S_CC1", 30.48), ("CC2", "S_CC2", 45.72), ("DP", "S_DP", 60.96), ("DM", "S_DM", 76.2)]):
+        part(f"R{7+2*i}", "R", "1M", FP_R0603, x, 101.6, {"1": sig, "2": adc}, f"{sig} monitor divider, top")
+        part(f"R{8+2*i}", "R", "1M", FP_R0603, x, 121.92, {"1": adc, "2": "GND"}, f"{sig} monitor divider, bottom")
+        part(f"C{8+i}", "C", "100n", FP_C0603, x + 7.62, 121.92, {"1": adc, "2": "GND"}, f"{sig} monitor filter")
+    # PC side: USB-C to the computer, powers INA228 + MCU
+    part("J3", "USB_C_Receptacle", "USB-C receptacle (PC)", "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", 251.46, 60.96,
+         {"A4": "VBUS_PC", "A9": "VBUS_PC", "B4": "VBUS_PC", "B9": "VBUS_PC", "A5": "CC1_PC", "B5": "CC2_PC",
+          "A6": "PC_DP", "B6": "PC_DP", "A7": "PC_DM", "B7": "PC_DM", "A8": "NC_J3_A8", "B8": "NC_J3_B8",
+          "A1": "GND", "A12": "GND", "B1": "GND", "B12": "GND", "S1": "GND"},
+         "To the PC: USB 2.0 full speed (CDC serial), 5 V supply for the meter only")
+    part("R5", "R", "5.1k", FP_R0603, 226.06, 96.52, {"1": "CC1_PC", "2": "GND"}, "Rd: PC sees a USB device")
+    part("R6", "R", "5.1k", FP_R0603, 233.68, 96.52, {"1": "CC2_PC", "2": "GND"}, "Rd")
+    part("U4", "USBLC6-2SC6", "USBLC6-2SC6", "Package_TO_SOT_SMD:SOT-23-6", 251.46, 101.6,
+         {"1": "PC_DP", "6": "PC_DP", "3": "PC_DM", "4": "PC_DM", "5": "VBUS_PC", "2": "GND"}, "ESD on the PC port")
+    part("U3", "XC6206", "XC6206P332MR", "Package_TO_SOT_SMD:SOT-23", 220.98, 30.48,
+         {"3": "VBUS_PC", "1": "GND", "2": "+3V3"}, "3.3 V LDO from PC USB 5 V")
+    part("C6", "C", "4.7u", FP_C0603, 205.74, 30.48, {"1": "VBUS_PC", "2": "GND"}, "LDO input")
+    part("C4", "C", "4.7u", FP_C0603, 236.22, 30.48, {"1": "+3V3", "2": "GND"}, "LDO output / 3V3 bulk")
+    # MCU
+    MCU = {str(n): f"NC_U2_{n}" for n in range(1, 49)}
+    MCU.update({"6": "+3V3", "4": "+3V3", "5": "+3V3", "7": "GND", "10": "NRST",
+                "11": "S_CC1", "12": "S_CC2", "13": "S_DP", "14": "S_DM", "15": "ALERT", "16": "LED",
+                "33": "PC_DM", "34": "PC_DP", "35": "SWDIO", "36": "SWCLK", "45": "SCL", "46": "SDA"})
+    part("U2", "STM32G0B1C", "STM32G0B1CBT6", "Package_QFP:LQFP-48_7x7mm_P0.5mm", 170.18, 81.28, MCU,
+         "USB FS device (crystal-less, CRS on SOF), I2C1 = INA228, ADC = CC/D+/D- monitors. Ships with USB DFU bootloader.")
+    part("C2", "C", "100n", FP_C0603, 139.7, 142.24, {"1": "+3V3", "2": "GND"}, "U2 VDD decoupling")
+    part("C3", "C", "100n", FP_C0603, 147.32, 142.24, {"1": "+3V3", "2": "GND"}, "U2 VBAT/VREF+ decoupling")
+    part("C5", "C", "100n", FP_C0603, 154.94, 142.24, {"1": "NRST", "2": "GND"}, "NRST filter")
+    part("R15", "R", "1k", FP_R0603, 205.74, 116.84, {"1": "LED", "2": "LED_A"}, "status LED resistor")
+    part("D2", "LED", "LED red", "LED_SMD:LED_0603_1608Metric", 205.74, 137.16, {"2": "LED_A", "1": "GND"}, "status LED")
+    part("J4", "Conn_1x05", "SWD", "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical", 236.22, 127.0,
+         {"1": "+3V3", "2": "SWDIO", "3": "SWCLK", "4": "NRST", "5": "GND"}, "Optional SWD (not assembled; USB DFU is enough)")
+
 else:
     # Off-the-shelf INA228 breakout (e.g. SparkFun SEN-31438 with SHUNT jumper opened,
     # or Adafruit 5832 with its 15 mOhm shunt removed) senses this board via J4.
@@ -249,7 +349,7 @@ else:
          {"1": "+3V3", "2": "GND", "3": "CTL_H", "4": "CTL_M"},
          "To logger MCU: 3V3 GND CTL_H CTL_M")
 
-for i, (hx, hy) in enumerate([(205.74, 116.84), (218.44, 116.84), (231.14, 116.84), (243.84, 116.84)]):
+for i, (hx, hy) in enumerate([] if VARIANT == "usb" else [(205.74, 116.84), (218.44, 116.84), (231.14, 116.84), (243.84, 116.84)]):
     part(f"H{i+1}", "MountingHole", "M3", "MountingHole:MountingHole_3.2mm_M3", hx, hy, {}, "M3 mounting hole")
 
 # ---------- schematic emit ----------
@@ -315,13 +415,23 @@ notes_smart = [
     (20.32, 170.18, "U3 IN+ sits on DUT_VDD: keep it a short, clean trace (5 pA input). R11/Q5/U3 are fed from VIN, upstream of the shunts."),
     (20.32, 175.26, "VIN 1.8 V to 5.5 V (U3 supply and FET Vgs). 3V3 for INA228 + MCU comes from the host header J3. Program U2 over SWD (J4)."),
 ]
-notes = {"integrated": notes_integrated, "module": notes_module, "smart": notes_smart}[VARIANT]
+notes_usb = [
+    (20.32, 154.94, "Rev D: in-line USB-C tester. J1 (plug) goes into the charger, the device cable goes into J2. Every USB 2.0 line passes straight through."),
+    (20.32, 160.02, "Current: 10 mOhm high-side shunt R1, INA228 ADCRANGE 1 (+-4.096 A, 7.8 uA/LSB) or 0 (+-16 A, 31 uA/LSB). 4-48 V (PD 3.1 EPR), 5 A max."),
+    (20.32, 165.1, "CC1/CC2/D+/D- are read through 1M/1M dividers (PD/QC state, ~2 Mohm load). SuperSpeed pairs are not passed (USB 2.0 data only)."),
+    (20.32, 170.18, "J3 to the PC: 5 V -> U3 -> 3V3 for U1/U2 only, never for the device under test. U2 is a USB CDC device; blank chips start the ST USB DFU bootloader."),
+    (20.32, 175.26, "Connector voltage ratings: J1 DX07 20 Vrms / 1.25 A per power pin (5 A total). Above 20 V the electronics are fine, the connectors run outside their rating."),
+]
+notes = {"integrated": notes_integrated, "module": notes_module, "smart": notes_smart, "usb": notes_usb}[VARIANT]
 for (x, y, t) in notes:
     items.append(f'(text "{t}" (at {F(x)} {F(y)} 0) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "{U()}"))')
 
 if VARIANT == "integrated":
     TITLE = "INA228 auto-ranging current meter (nA - 2.5A)"
     COMMENT = "High-side, 3 shunts + P-FET range switching, logger MCU over I2C"
+elif VARIANT == "usb":
+    TITLE = "USB-C power meter, rev D (4-48 V, 5 A)"
+    COMMENT = "Pass-through USB-C plug -> receptacle, INA228 + STM32G0B1 USB CDC to the PC"
 elif VARIANT == "smart":
     TITLE = "INA228 smart current profiler (nA - 2.5A), rev C"
     COMMENT = "On-board STM32G030 auto-ranging + comparator fast up-range; one value out over I2C / UART"
@@ -329,8 +439,8 @@ else:
     TITLE = "Shunt + range-switch adapter for INA228 module (nA - 2.5A)"
     COMMENT = "High-side, 3 shunts + P-FET range switching, Kelvin sense to external INA228 breakout"
 libsyms = " ".join(sym_sexpr(n, "meter:") for n in SYMS)
-sch = (f'(kicad_sch (version 20230121) (generator eeschema) (uuid "{ROOT}") (paper "{"A3" if VARIANT == "smart" else "A4"}") '
-       f'(title_block (title "{TITLE}") (date "2026-11-24") (rev "A") '
+sch = (f'(kicad_sch (version 20230121) (generator eeschema) (uuid "{ROOT}") (paper "{"A3" if VARIANT in ("smart", "usb") else "A4"}") '
+       f'(title_block (title "{TITLE}") (date "2026-11-24") (rev "{"D" if VARIANT == "usb" else "A"}") '
        f'(comment 1 "{COMMENT}")) '
        f'(lib_symbols {libsyms}) ' + " ".join(items) +
        f' (sheet_instances (path "/" (page "1"))))')

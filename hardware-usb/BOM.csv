@@ -1,0 +1,36 @@
+Ref,Value,Footprint,Note
+J1,USB-C plug (IN),Connector_USB:USB_C_Plug_JAE_DX07P024AJ1,"Input: plugs into the charger. Pass-through pin to pin, like a short extension."
+J2,USB-C receptacle (OUT),Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12,Output: the phone / device cable plugs in here. CC1/CC2/D+/D-/SBU wired straight to J1.
+R1,10m 1% 2W,Resistor_SMD:R_2512_6332Metric,"Shunt, high side, Kelvin taps to U1"
+D1,SMBJ51A,Diode_SMD:D_SMB,"TVS: 51 V stand-off (PD 3.1 EPR 48 V), clamps below the INA228 85 V limit"
+U1,INA228AIDGSR,Package_SO:VSSOP-10_3x3mm_P0.5mm,"I2C 0x40. Measures bus V on the OUT side, 0-85 V"
+C1,100n,Capacitor_SMD:C_0603_1608Metric,U1 VS decoupling
+R2,10k,Resistor_SMD:R_0603_1608Metric,ALERT open-drain pull-up
+R3,4.7k,Resistor_SMD:R_0603_1608Metric,I2C pull-up
+R4,4.7k,Resistor_SMD:R_0603_1608Metric,I2C pull-up
+R7,1M,Resistor_SMD:R_0603_1608Metric,"CC1 monitor divider, top"
+R8,1M,Resistor_SMD:R_0603_1608Metric,"CC1 monitor divider, bottom"
+C8,100n,Capacitor_SMD:C_0603_1608Metric,CC1 monitor filter
+R9,1M,Resistor_SMD:R_0603_1608Metric,"CC2 monitor divider, top"
+R10,1M,Resistor_SMD:R_0603_1608Metric,"CC2 monitor divider, bottom"
+C9,100n,Capacitor_SMD:C_0603_1608Metric,CC2 monitor filter
+R11,1M,Resistor_SMD:R_0603_1608Metric,"DP monitor divider, top"
+R12,1M,Resistor_SMD:R_0603_1608Metric,"DP monitor divider, bottom"
+C10,100n,Capacitor_SMD:C_0603_1608Metric,DP monitor filter
+R13,1M,Resistor_SMD:R_0603_1608Metric,"DM monitor divider, top"
+R14,1M,Resistor_SMD:R_0603_1608Metric,"DM monitor divider, bottom"
+C11,100n,Capacitor_SMD:C_0603_1608Metric,DM monitor filter
+J3,USB-C receptacle (PC),Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12,"To the PC: USB 2.0 full speed (CDC serial), 5 V supply for the meter only"
+R5,5.1k,Resistor_SMD:R_0603_1608Metric,Rd: PC sees a USB device
+R6,5.1k,Resistor_SMD:R_0603_1608Metric,Rd
+U4,USBLC6-2SC6,Package_TO_SOT_SMD:SOT-23-6,ESD on the PC port
+U3,XC6206P332MR,Package_TO_SOT_SMD:SOT-23,3.3 V LDO from PC USB 5 V
+C6,4.7u,Capacitor_SMD:C_0603_1608Metric,LDO input
+C4,4.7u,Capacitor_SMD:C_0603_1608Metric,LDO output / 3V3 bulk
+U2,STM32G0B1CBT6,Package_QFP:LQFP-48_7x7mm_P0.5mm,"USB FS device (crystal-less, CRS on SOF), I2C1 = INA228, ADC = CC/D+/D- monitors. Ships with USB DFU bootloader."
+C2,100n,Capacitor_SMD:C_0603_1608Metric,U2 VDD decoupling
+C3,100n,Capacitor_SMD:C_0603_1608Metric,U2 VBAT/VREF+ decoupling
+C5,100n,Capacitor_SMD:C_0603_1608Metric,NRST filter
+R15,1k,Resistor_SMD:R_0603_1608Metric,status LED resistor
+D2,LED red,LED_SMD:LED_0603_1608Metric,status LED
+J4,SWD,Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical,Optional SWD (not assembled; USB DFU is enough)

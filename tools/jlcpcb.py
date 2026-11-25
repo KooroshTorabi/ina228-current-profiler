@@ -1,15 +1,15 @@
 # Writes JLCPCB assembly files (BOM + CPL) plus the Gerber zip into <hardware dir>/jlcpcb/.
-# Usage: python3 tools/jlcpcb.py [integrated|smart]      (needs kicad-cli; default integrated = variant A)
+# Usage: python3 tools/jlcpcb.py [integrated|smart|usb]  (needs kicad-cli; default integrated = variant A)
 #
 # LCSC numbers were picked from LCSC/JLCPCB listings in Nov 2026. Stock changes daily: JLCPCB's
 # BOM step shows live stock and offers replacements for anything that has run out.
 import csv, json, os, shutil, subprocess, sys, tempfile
 
 VARIANT = sys.argv[1] if len(sys.argv) > 1 else "integrated"
-assert VARIANT in ("integrated", "smart")
+assert VARIANT in ("integrated", "smart", "usb")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-HW = os.path.join(ROOT, "hardware" if VARIANT == "integrated" else "hardware-smart")
-PCB = os.path.join(HW, "kicad", "current_meter.kicad_pcb" if VARIANT == "integrated" else "current_smart.kicad_pcb")
+HW = os.path.join(ROOT, {"integrated": "hardware", "smart": "hardware-smart", "usb": "hardware-usb"}[VARIANT])
+PCB = os.path.join(HW, "kicad", {"integrated": "current_meter", "smart": "current_smart", "usb": "current_usb"}[VARIANT] + ".kicad_pcb")
 OUT = os.path.join(HW, "jlcpcb")
 
 # ref -> (LCSC part, manufacturer part, JLC footprint name)
@@ -67,6 +67,37 @@ ROT_FIX = {"Q1": -90, "Q2": 180, "Q3": 180, "Q4": 180, "D1": 180, "D2": 180, "J3
 ROT_FIX.update({"Q5": 180, "D3": 180, "U3": 180})
 # JLC places these at the body centre, KiCad's origin is pin 1: use the pad centroid instead.
 CENTROID = {"J1", "J2", "J3"}
+
+if VARIANT == "usb":
+    C100N = ("C14663", "YAGEO CC0603KRX7R9BB104 100nF 50V X7R", "0603")
+    LCSC = {
+        "J1":  ("C5352764", "JAE DX07P024AJ1R1500 USB-C plug, straddle mount", "USB-C plug"),
+        "J2":  ("C165948",  "HRO TYPE-C-31-M-12 USB-C receptacle", "USB-C-SMD_TYPE-C-31-M-12"),
+        "J3":  ("C165948",  "HRO TYPE-C-31-M-12 USB-C receptacle", "USB-C-SMD_TYPE-C-31-M-12"),
+        "R1":  ("C323772",  "FORT CUM2512-24FR010 10mΩ 1% 2W", "2512"),
+        "D1":  ("C698968",  "YANGJIE SMBJ51A TVS 51V", "SMB"),
+        "U1":  ("C2887910", "TI INA228AIDGSR", "VSSOP-10"),
+        "U2":  ("C2847904", "ST STM32G0B1CBT6", "LQFP-48"),
+        "U3":  ("C5446",    "TOREX XC6206P332MR-G 3.3V LDO", "SOT-23"),
+        "U4":  ("C7519",    "ST USBLC6-2SC6", "SOT-23-6"),
+        "C1": C100N, "C2": C100N, "C3": C100N, "C5": C100N, "C8": C100N, "C9": C100N, "C10": C100N, "C11": C100N,
+        "C4":  ("C19666",   "Samsung CL10A475KO8NNNC 4.7µF 16V X5R", "0603"),
+        "C6":  ("C19666",   "Samsung CL10A475KO8NNNC 4.7µF 16V X5R", "0603"),
+        "R2":  ("C25804",   "10kΩ 1% 0603", "0603"),
+        "R3":  ("C23162",   "4.7kΩ 1% 0603", "0603"),
+        "R4":  ("C23162",   "4.7kΩ 1% 0603", "0603"),
+        "R5":  ("C23186",   "5.1kΩ 1% 0603", "0603"),
+        "R6":  ("C23186",   "5.1kΩ 1% 0603", "0603"),
+        "R15": ("C21190",   "1kΩ 1% 0603", "0603"),
+        "D2":  ("C2286",    "KENTO KT-0603R red LED", "0603"),
+    }
+    for r in range(7, 15):
+        LCSC[f"R{r}"] = ("C22935", "1MΩ 1% 0603", "0603")
+    DNP = {"J4"}       # optional SWD header; the chip is programmed over USB (DFU)
+    # Same corrections as the same packages in variants A/C. Not yet seen in JLC's preview:
+    # U2 (LQFP-48), U4 (SOT-23-6), J1, J2, J3. Check their pin-1 marks / orientation there.
+    ROT_FIX = {"U3": 180, "D1": 180, "D2": 180}
+    CENTROID = set()   # the USB-C footprints have their origin at the body already
 
 parts = json.load(open(os.path.join(HW, "parts.json")))
 placed = [r for r in parts if not r.startswith("H") and r not in DNP]

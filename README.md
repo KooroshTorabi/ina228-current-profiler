@@ -18,6 +18,21 @@ There are three variants built from the same range-switching core:
 - **B:** if you already have an INA228 breakout or don't want to solder a 0.5 mm-pitch VSSOP.
 - **C:** if the host should just read a current. The three ranges then look like a single one from nA to 2.5 A.
 
+### Rev D: USB-C power meter (4–48 V, 5 A)
+
+![Rev D](docs/usb/3d_top.png)
+
+A separate in-line tester for chargers, phones and power banks, built on the same INA228:
+
+- **Hardware:** a USB-C plug (J1) goes into the charger, the device's cable goes into the receptacle (J2), and a second USB-C port (J3) goes to the PC.
+- **Measures:** V, A, W, mAh and mWh, plus the CC1/CC2/D+/D− line voltages (Type-C current advertisement, VCONN, QC/Apple/BC1.2 levels).
+- **No display:** everything goes to the PC over USB as a serial port, for an app to plot and report.
+- **Range:** 10 mΩ shunt. ±4 A in 7.8 µA steps, switching automatically to ±16 A above 3.8 A. Board limit 5 A.
+- **USB PD 3.1 EPR (48 V):** the INA228 (85 V) and the 51 V TVS cover it. The plug is rated 20 V, see [docs/usb.md](docs/usb.md#will-usb-pd-31-48-v-damage-it).
+- **Pass-through:** CC1, CC2, D+, D−, SBU1 and SBU2 go straight through, so PD/QC negotiation and e-marked cables work as with the cable alone.
+- **Programming:** STM32G0B1 with TinyUSB, flashed over USB (DFU). No programmer needed.
+- **Files:** [`hardware-usb/`](hardware-usb) · [notes](docs/usb.md) · [firmware](firmware/usb)
+
 ### Why not just change the breakout's shunt?
 
 A single shunt only moves the measurement window; it does not widen it:
@@ -63,9 +78,9 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 
 ## 3D models
 
-**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer (variant C directly: [`?v=smart`](https://kourosh.site/ina228-current-profiler/viewer/index.html?v=smart)). Turn the board, zoom, switch between the three variants, and point at a part to see its name and value.
+**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer (variant C directly: [`?v=smart`](https://kourosh.site/ina228-current-profiler/viewer/index.html?v=smart), rev D: [`?v=usb`](https://kourosh.site/ina228-current-profiler/viewer/index.html?v=usb)). Turn the board, zoom, switch between the variants, and point at a part to see its name and value.
 
-**STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl), [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) or [`hardware-smart/3d/current_smart.stl`](hardware-smart/3d/current_smart.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
+**STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl), [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) [`hardware-smart/3d/current_smart.stl`](hardware-smart/3d/current_smart.stl) or [`hardware-usb/3d/current_usb.stl`](hardware-usb/3d/current_usb.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
 
 | Variant A, bottom | Variant B, bottom | Variant C, bottom |
 |---|---|---|
@@ -74,7 +89,7 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 - **STEP** (`hardware*/3d/*.step`): opens in any CAD tool (FreeCAD, Fusion, SolidWorks) for enclosure design.
 - **STL** (`hardware*/3d/*.stl`): one-colour mesh in mm, shown by GitHub and accepted by any slicer or mesh tool.
 - **GLB** (`hardware*/3d/*.glb`): the same model with copper, solder mask and silkscreen from the real board layers. Opens in any glTF viewer (Blender, online glTF viewers).
-- **Parts:** 3D bodies come from the KiCad 3D library.
+- **Parts:** 3D bodies come from the KiCad 3D library. Rev D's USB-C connectors have no library model, so `tools/add_usb_bodies.py` adds simple bodies for them.
 - **Terminals:** the wire entries of J1 and J2 face the board edge on both variants.
 
 ## How it works
@@ -119,7 +134,7 @@ See [docs/design.md](docs/design.md) for the design notes: wake-up transients, l
 
 ## Ordering assembled boards
 
-Variants A and C are ready to order fully assembled from JLCPCB: Gerbers, BOM with LCSC part numbers, and the pick-and-place file are in [`hardware/jlcpcb/`](hardware/jlcpcb) and [`hardware-smart/jlcpcb/`](hardware-smart/jlcpcb). Settings, part list, fallback parts and what to check in the placement preview are in [docs/ordering.md](docs/ordering.md).
+Variants A and C and rev D are ready to order fully assembled from JLCPCB: Gerbers, BOM with LCSC part numbers, and the pick-and-place file are in [`hardware/jlcpcb/`](hardware/jlcpcb), [`hardware-smart/jlcpcb/`](hardware-smart/jlcpcb) and [`hardware-usb/jlcpcb/`](hardware-usb/jlcpcb). Settings, part list, fallback parts and what to check in the placement preview are in [docs/ordering.md](docs/ordering.md).
 
 ## Repository layout
 
@@ -127,25 +142,30 @@ Variants A and C are ready to order fully assembled from JLCPCB: Gerbers, BOM wi
 hardware/            variant A: KiCad project, fab/, 3d/, jlcpcb/, schematic.pdf, BOM.csv
 hardware-module/     variant B: same structure
 hardware-smart/      variant C: same structure
+hardware-usb/        rev D (USB-C power meter): same structure
 docs/
   design.md          design notes and calibration procedure
   module.md          variant B: preparing and wiring the breakout
   smart.md           variant C: on-board ranging, comparator, sample rate
-  ordering.md        ordering variants A and C assembled (JLCPCB)
-  integrated/ module/ smart/  schematic, PCB and 3D renders
+  usb.md             rev D: USB-C power meter, PD 3.1 limits, pass-through, board notes
+  ordering.md        ordering variants A, C and rev D assembled (JLCPCB)
+  integrated/ module/ smart/ usb/  schematic, PCB and 3D renders
   viewer/            interactive 3D viewer (served at kourosh.site)
 firmware/
   smart/             variant C firmware (STM32G030, bare metal) + host scripts for Pi / PC
+  usb/               rev D firmware (STM32G0B1, TinyUSB CDC) + host/meter.py
 tools/
-  gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module | smart)
-  gen_pcb.py         placement + hand-routing of the critical nets
+  gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module | smart | usb)
+  gen_pcb.py         placement + hand-routing of the critical nets (variants A-C)
+  gen_pcb_usb.py     rev D placement, board outline with the plug paddle, 5 A paths and Kelvin taps
   route.py           Freerouting for the remaining nets, GND pours, DRC-gated retries
   step2glb.py        STEP → GLB with colours (OpenCascade)
   make_3d.py         adds copper/mask/silk textures to the GLB
   render_3d.py       PNG renders of the GLB
+  add_usb_bodies.py  simple 3D bodies for rev D's USB-C connectors
   glb2stl.py         one-colour STL for GitHub's 3D viewer
   build_pcb.sh       runs all of the above and exports fab files
-  jlcpcb.py          JLCPCB BOM + CPL for assembled boards   (arg: integrated | smart)
+  jlcpcb.py          JLCPCB BOM + CPL for assembled boards   (arg: integrated | smart | usb)
 ```
 
 ## Logger connector (J3, variant A)
@@ -170,6 +190,8 @@ Variant C's J3 is `3V3, GND, SDA, SCL, TX, RX`: I2C slave 0x48 and UART 921600 8
 - [x] PCB layout, variants A and B (rev A) and C (rev C), not yet fabricated
 - [x] 3D models
 - [x] Variant C firmware with auto-ranging (compiles; not yet run on hardware)
+- [x] Rev D (USB-C power meter): schematic, PCB, 3D, JLCPCB files, firmware (compiles; not yet fabricated or run)
+- [ ] PC app for rev D: live plots, charge sessions, reports
 - [ ] Logger firmware for variants A/B
 - [ ] Calibration and validation against a reference meter
 
@@ -183,8 +205,11 @@ The schematics, PCBs and 3D files are all generated from scripts:
 tools/build_pcb.sh /path/to/freerouting-1.9.0.jar integrated
 tools/build_pcb.sh /path/to/freerouting-1.9.0.jar module
 tools/build_pcb.sh /path/to/freerouting-1.9.0.jar smart
+tools/build_pcb.sh /path/to/freerouting-1.9.0.jar usb
 python3 tools/jlcpcb.py smart          # JLCPCB BOM + CPL for variant C
+python3 tools/jlcpcb.py usb            # ... and for rev D
 make -C firmware/smart                 # variant C firmware (arm-none-eabi-gcc)
+make -C firmware/usb                   # rev D firmware (fetches TinyUSB 0.18.0 with git)
 ```
 
 Freerouting is not deterministic, so the low-current routing can differ between runs. `route.py` retries until the board is fully connected with no copper DRC errors. Run DRC in KiCad once more after rebuilding.

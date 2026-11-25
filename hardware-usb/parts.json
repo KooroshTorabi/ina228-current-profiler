@@ -1,0 +1,432 @@
+{
+ "J1": {
+  "nets": {
+   "A4": "VBUS_IN",
+   "A9": "VBUS_IN",
+   "B4": "VBUS_IN",
+   "B9": "VBUS_IN",
+   "A5": "CC1",
+   "B5": "CC2",
+   "A6": "DP",
+   "A7": "DM",
+   "B6": "NC_J1_B6",
+   "B7": "NC_J1_B7",
+   "A8": "SBU1",
+   "B8": "SBU2",
+   "A1": "GND",
+   "A12": "GND",
+   "B1": "GND",
+   "B12": "GND",
+   "S1": "GND",
+   "A2": "NC_J1_A2",
+   "A3": "NC_J1_A3",
+   "A10": "NC_J1_A10",
+   "A11": "NC_J1_A11",
+   "B2": "NC_J1_B2",
+   "B3": "NC_J1_B3",
+   "B10": "NC_J1_B10",
+   "B11": "NC_J1_B11"
+  },
+  "fp": "Connector_USB:USB_C_Plug_JAE_DX07P024AJ1",
+  "val": "USB-C plug (IN)",
+  "uuid": "5b78bb7d-15f8-531d-ac75-e6f43edd958b"
+ },
+ "J2": {
+  "nets": {
+   "A4": "VBUS_OUT",
+   "A9": "VBUS_OUT",
+   "B4": "VBUS_OUT",
+   "B9": "VBUS_OUT",
+   "A5": "CC1",
+   "B5": "CC2",
+   "A6": "DP",
+   "B6": "DP",
+   "A7": "DM",
+   "B7": "DM",
+   "A8": "SBU1",
+   "B8": "SBU2",
+   "A1": "GND",
+   "A12": "GND",
+   "B1": "GND",
+   "B12": "GND",
+   "S1": "GND"
+  },
+  "fp": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+  "val": "USB-C receptacle (OUT)",
+  "uuid": "362a0abd-9c3d-5f72-849e-c49df258afe1"
+ },
+ "R1": {
+  "nets": {
+   "1": "VBUS_IN",
+   "2": "VBUS_OUT"
+  },
+  "fp": "Resistor_SMD:R_2512_6332Metric",
+  "val": "10m 1% 2W",
+  "uuid": "abc3c9ff-e013-5cad-90c6-40c857ff35c3"
+ },
+ "D1": {
+  "nets": {
+   "1": "VBUS_IN",
+   "2": "GND"
+  },
+  "fp": "Diode_SMD:D_SMB",
+  "val": "SMBJ51A",
+  "uuid": "f8069fe2-1e00-58fe-ae05-8627d73372fd"
+ },
+ "U1": {
+  "nets": {
+   "10": "VBUS_IN",
+   "9": "VBUS_OUT",
+   "8": "VBUS_OUT",
+   "6": "+3V3",
+   "7": "GND",
+   "4": "SDA",
+   "5": "SCL",
+   "3": "ALERT",
+   "2": "GND",
+   "1": "GND"
+  },
+  "fp": "Package_SO:VSSOP-10_3x3mm_P0.5mm",
+  "val": "INA228AIDGSR",
+  "uuid": "68adff3e-1450-5f30-8af1-2795b47a6acf"
+ },
+ "C1": {
+  "nets": {
+   "1": "+3V3",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "08db069c-e426-5aad-b95d-8fb366307c6a"
+ },
+ "R2": {
+  "nets": {
+   "1": "+3V3",
+   "2": "ALERT"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "10k",
+  "uuid": "1164e7a2-10eb-58d5-8c0f-9b4b5631e475"
+ },
+ "R3": {
+  "nets": {
+   "1": "+3V3",
+   "2": "SDA"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "4.7k",
+  "uuid": "5eac1b90-1118-5ad1-a071-03c8e53f6a87"
+ },
+ "R4": {
+  "nets": {
+   "1": "+3V3",
+   "2": "SCL"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "4.7k",
+  "uuid": "71ba7660-23d9-54ba-bb89-4490c32f1453"
+ },
+ "R7": {
+  "nets": {
+   "1": "CC1",
+   "2": "S_CC1"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "eeecd1b5-91b6-5166-b063-58dd94cc6ce7"
+ },
+ "R8": {
+  "nets": {
+   "1": "S_CC1",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "68ec8283-c13a-5fa9-974c-dade5b913904"
+ },
+ "C8": {
+  "nets": {
+   "1": "S_CC1",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "a374273e-efcd-5ee0-92b4-9f4cc0350c74"
+ },
+ "R9": {
+  "nets": {
+   "1": "CC2",
+   "2": "S_CC2"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "4b7c7ecc-5e0e-57ae-9014-c7d256e40d36"
+ },
+ "R10": {
+  "nets": {
+   "1": "S_CC2",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "40349e87-290e-5f8f-b358-616efe37a10d"
+ },
+ "C9": {
+  "nets": {
+   "1": "S_CC2",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "56058a8a-a298-5010-afa3-79192d9351ea"
+ },
+ "R11": {
+  "nets": {
+   "1": "DP",
+   "2": "S_DP"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "47997d81-a4e4-5de5-833c-4418b0eecf6b"
+ },
+ "R12": {
+  "nets": {
+   "1": "S_DP",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "dca586df-9862-5222-ab58-185a2e3bd7d6"
+ },
+ "C10": {
+  "nets": {
+   "1": "S_DP",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "10b9406f-8eab-5ce2-bb67-53713dd7b8aa"
+ },
+ "R13": {
+  "nets": {
+   "1": "DM",
+   "2": "S_DM"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "63d1bf2d-933a-5ce2-a24a-d92a44955f61"
+ },
+ "R14": {
+  "nets": {
+   "1": "S_DM",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1M",
+  "uuid": "92872d2f-9592-53bc-b82e-b839c6e32aa5"
+ },
+ "C11": {
+  "nets": {
+   "1": "S_DM",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "37ae9d1d-94aa-57c2-9ed5-190ceceb439a"
+ },
+ "J3": {
+  "nets": {
+   "A4": "VBUS_PC",
+   "A9": "VBUS_PC",
+   "B4": "VBUS_PC",
+   "B9": "VBUS_PC",
+   "A5": "CC1_PC",
+   "B5": "CC2_PC",
+   "A6": "PC_DP",
+   "B6": "PC_DP",
+   "A7": "PC_DM",
+   "B7": "PC_DM",
+   "A8": "NC_J3_A8",
+   "B8": "NC_J3_B8",
+   "A1": "GND",
+   "A12": "GND",
+   "B1": "GND",
+   "B12": "GND",
+   "S1": "GND"
+  },
+  "fp": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+  "val": "USB-C receptacle (PC)",
+  "uuid": "5a69658b-527b-5a84-9b17-e3718af2ddca"
+ },
+ "R5": {
+  "nets": {
+   "1": "CC1_PC",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "5.1k",
+  "uuid": "4c7c92a1-d5e7-5642-92c4-5015e2ccfe76"
+ },
+ "R6": {
+  "nets": {
+   "1": "CC2_PC",
+   "2": "GND"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "5.1k",
+  "uuid": "66f2ed3b-a290-54d6-b207-a498a179a2aa"
+ },
+ "U4": {
+  "nets": {
+   "1": "PC_DP",
+   "6": "PC_DP",
+   "3": "PC_DM",
+   "4": "PC_DM",
+   "5": "VBUS_PC",
+   "2": "GND"
+  },
+  "fp": "Package_TO_SOT_SMD:SOT-23-6",
+  "val": "USBLC6-2SC6",
+  "uuid": "7d7c481c-319c-525b-8928-13d60b3bcbd0"
+ },
+ "U3": {
+  "nets": {
+   "3": "VBUS_PC",
+   "1": "GND",
+   "2": "+3V3"
+  },
+  "fp": "Package_TO_SOT_SMD:SOT-23",
+  "val": "XC6206P332MR",
+  "uuid": "7164cd99-65ac-5a59-b1dd-7a3b6a65b238"
+ },
+ "C6": {
+  "nets": {
+   "1": "VBUS_PC",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "4.7u",
+  "uuid": "960d2877-514a-5acb-b0dc-73e50d0e46f4"
+ },
+ "C4": {
+  "nets": {
+   "1": "+3V3",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "4.7u",
+  "uuid": "56b3dcc2-2451-5295-a6fc-fc74619f8e0a"
+ },
+ "U2": {
+  "nets": {
+   "1": "NC_U2_1",
+   "2": "NC_U2_2",
+   "3": "NC_U2_3",
+   "4": "+3V3",
+   "5": "+3V3",
+   "6": "+3V3",
+   "7": "GND",
+   "8": "NC_U2_8",
+   "9": "NC_U2_9",
+   "10": "NRST",
+   "11": "S_CC1",
+   "12": "S_CC2",
+   "13": "S_DP",
+   "14": "S_DM",
+   "15": "ALERT",
+   "16": "LED",
+   "17": "NC_U2_17",
+   "18": "NC_U2_18",
+   "19": "NC_U2_19",
+   "20": "NC_U2_20",
+   "21": "NC_U2_21",
+   "22": "NC_U2_22",
+   "23": "NC_U2_23",
+   "24": "NC_U2_24",
+   "25": "NC_U2_25",
+   "26": "NC_U2_26",
+   "27": "NC_U2_27",
+   "28": "NC_U2_28",
+   "29": "NC_U2_29",
+   "30": "NC_U2_30",
+   "31": "NC_U2_31",
+   "32": "NC_U2_32",
+   "33": "PC_DM",
+   "34": "PC_DP",
+   "35": "SWDIO",
+   "36": "SWCLK",
+   "37": "NC_U2_37",
+   "38": "NC_U2_38",
+   "39": "NC_U2_39",
+   "40": "NC_U2_40",
+   "41": "NC_U2_41",
+   "42": "NC_U2_42",
+   "43": "NC_U2_43",
+   "44": "NC_U2_44",
+   "45": "SCL",
+   "46": "SDA",
+   "47": "NC_U2_47",
+   "48": "NC_U2_48"
+  },
+  "fp": "Package_QFP:LQFP-48_7x7mm_P0.5mm",
+  "val": "STM32G0B1CBT6",
+  "uuid": "1b821820-633c-5690-ad1a-5bc612bf3ca0"
+ },
+ "C2": {
+  "nets": {
+   "1": "+3V3",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "b649579e-87a0-5473-bac7-a49edf76870f"
+ },
+ "C3": {
+  "nets": {
+   "1": "+3V3",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "b8bb418a-aa77-50de-9052-380592434056"
+ },
+ "C5": {
+  "nets": {
+   "1": "NRST",
+   "2": "GND"
+  },
+  "fp": "Capacitor_SMD:C_0603_1608Metric",
+  "val": "100n",
+  "uuid": "34cab057-8f2c-53dd-8324-9a1ca2140cd8"
+ },
+ "R15": {
+  "nets": {
+   "1": "LED",
+   "2": "LED_A"
+  },
+  "fp": "Resistor_SMD:R_0603_1608Metric",
+  "val": "1k",
+  "uuid": "1b64d504-ecfb-5b0d-b0e2-47a48eaa6c70"
+ },
+ "D2": {
+  "nets": {
+   "2": "LED_A",
+   "1": "GND"
+  },
+  "fp": "LED_SMD:LED_0603_1608Metric",
+  "val": "LED red",
+  "uuid": "d4214e77-747a-5853-8294-bba94184c5f0"
+ },
+ "J4": {
+  "nets": {
+   "1": "+3V3",
+   "2": "SWDIO",
+   "3": "SWCLK",
+   "4": "NRST",
+   "5": "GND"
+  },
+  "fp": "Connector_PinHeader_1.27mm:PinHeader_1x05_P1.27mm_Vertical",
+  "val": "SWD",
+  "uuid": "221a301e-699a-55de-a1ef-ec57c15f7458"
+ }
+}

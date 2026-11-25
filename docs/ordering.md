@@ -92,3 +92,23 @@ The files are in [`hardware-smart/jlcpcb/`](../hardware-smart/jlcpcb): `gerbers.
   - Q5 and D3 already get the same correction as the other SOT-23 and diode parts.
 - **U1 (INA228)** must be pre-ordered, as for variant A.
 - **Firmware:** the boards arrive blank. Flash `firmware/smart` over SWD before first use.
+
+## Rev D (USB-C power meter)
+
+The files are in [`hardware-usb/jlcpcb/`](../hardware-usb/jlcpcb): `gerbers.zip`, `bom_jlcpcb.csv` and `cpl_jlcpcb.csv`. The steps are the same as for variant A, with these differences:
+
+- **Board:** 56 × 32 mm plus the plug paddle (61 mm overall).
+- **PCB thickness:** set it to the paddle thickness J1 needs, from JAE drawing SJ116680. It is thinner than 1.6 mm. This matters: the plug only grips a board of the right thickness.
+- **Parts:** 34 placements in 16 BOM lines. The ones to check:
+  - U1 INA228 (C2887910): pre-order, as for variant A.
+  - U2 STM32G0B1CBT6 (C2847904) and J1 JAE DX07P024AJ1R1500 (C5352764): extended parts, check stock.
+  - D1 SMBJ51A (C698968): any SMBJ51A in SMB works if this one is out of stock (51 V stand-off, 82.4 V clamp).
+- **J1 is a straddle-mount plug** with pads on both board layers.
+  - If JLC's review says it cannot be placed, mark it "do not place" and solder it by hand.
+  - The pitch is 0.5 mm: use flux and a fine tip, top row first, then the bottom row.
+- **J4 (SWD) is not assembled** and not needed: U2 is programmed over USB.
+- **Unverified rotations:** U2 (LQFP-48), U4 (SOT-23-6), J1, J2 and J3 have not yet been seen in JLC's placement preview.
+  - Check U2's and U4's pin-1 dots against the silkscreen marks.
+  - J2 and J3 must open towards the board edge; J1 must sit on the paddle with its metal shell pointing away from the board.
+  - U3, D1 and D2 already get the same correction as the matching packages on variants A and C.
+- **Firmware:** the boards arrive blank and start ST's USB DFU bootloader. Plug J3 into the PC and run `make -C firmware/usb dfu`.

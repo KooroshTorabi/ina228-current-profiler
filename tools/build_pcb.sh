@@ -2,7 +2,7 @@
 # Rebuilds the schematic, PCB, fabrication outputs and 3D model for one variant.
 # Needs: KiCad 7+ (pcbnew Python + kicad-cli, footprint and 3D libraries), Java,
 #        xvfb-run and the Freerouting 1.9 jar.
-# Usage: tools/build_pcb.sh /path/to/freerouting-1.9.0.jar [integrated|module|smart]
+# Usage: tools/build_pcb.sh /path/to/freerouting-1.9.0.jar [integrated|module|smart|usb]
 #   PYTHON = python with pcbnew (default python3), PY3D = python with the 3D packages
 set -e
 cd "$(dirname "$0")/.."
@@ -11,12 +11,18 @@ case "$VARIANT" in
   integrated) HW=hardware; NAME=current_meter ;;
   module) HW=hardware-module; NAME=current_adapter ;;
   smart) HW=hardware-smart; NAME=current_smart ;;
+  usb) HW=hardware-usb; NAME=current_usb ;;
   *) echo "unknown variant $VARIANT"; exit 1 ;;
 esac
 PCB=$HW/kicad/$NAME.kicad_pcb
 PY=${PYTHON:-python3}
 $PY tools/gen_schematic.py "$VARIANT"
-$PY tools/gen_pcb.py "$PCB" "$VARIANT"
+if [ "$VARIANT" = usb ]; then
+  $PY tools/gen_pcb_usb.py "$PCB"
+  export ROUTE_CRITICAL=VBUS_IN,VBUS_OUT        # 5 A paths and Kelvin taps are hand-routed
+else
+  $PY tools/gen_pcb.py "$PCB" "$VARIANT"
+fi
 xvfb-run -a $PY tools/route.py "$PCB" "$1"
 rm -rf logs "$HW/fab" && mkdir -p "$HW/fab/gerbers" "$HW/3d"
 kicad-cli pcb export gerbers -l F.Cu,B.Cu,F.Paste,B.Paste,F.SilkS,B.SilkS,F.Mask,B.Mask,Edge.Cuts -o "$HW/fab/gerbers/" "$PCB"
@@ -30,6 +36,7 @@ KICAD7_3DMODEL_DIR=${KICAD7_3DMODEL_DIR:-/usr/share/kicad/3dmodels} \
 PY3D=${PY3D:-python3}
 $PY3D tools/step2glb.py "$HW/3d/$NAME.step" "$HW/3d/$NAME.glb"
 $PY3D tools/make_3d.py "$PCB" "$HW/3d/$NAME.glb" "$HW/3d/$NAME.glb"
+[ "$VARIANT" = usb ] && $PY3D tools/add_usb_bodies.py "$PCB" "$HW/3d/$NAME.glb" "$HW/3d/$NAME.glb"
 $PY3D tools/glb2stl.py "$HW/3d/$NAME.glb" "$HW/3d/$NAME.stl"
 mkdir -p docs/viewer && cp "$HW/3d/$NAME.glb" docs/viewer/
 mkdir -p docs/$VARIANT

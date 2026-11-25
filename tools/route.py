@@ -6,12 +6,33 @@ import pcbnew
 
 PCB, JAR = sys.argv[1], sys.argv[2]
 # Hand-routed in gen_pcb.py; the router must never add copper to these.
-CRITICAL = {"VIN", "NODE_A", "NODE_B", "DUT_VDD"}
+CRITICAL = set(os.environ.get("ROUTE_CRITICAL", "VIN,NODE_A,NODE_B,DUT_VDD").split(","))
 mm = pcbnew.FromMM
 
 base = os.path.splitext(PCB)[0]
 dsn, ses = base + ".dsn", base + ".ses"
 LAYER = {"F.Cu": pcbnew.F_Cu, "B.Cu": pcbnew.B_Cu}
+
+def add_pours(board):
+    nets = board.GetNetsByName()
+    # Ground pours on both layers
+    bb = board.GetBoardEdgesBoundingBox()
+    for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
+        z = pcbnew.ZONE(board)
+        z.SetLayer(layer); z.SetNet(nets["GND"]); z.SetLocalClearance(mm(0.3))
+        z.SetMinThickness(mm(0.25)); z.SetPadConnection(pcbnew.ZONE_CONNECTION_FULL)
+        z.SetThermalReliefGap(mm(0.3)); z.SetThermalReliefSpokeWidth(mm(0.4))
+        o = z.Outline(); o.NewOutline()
+        for x, y in [(bb.GetLeft(), bb.GetTop()), (bb.GetRight(), bb.GetTop()),
+                     (bb.GetRight(), bb.GetBottom()), (bb.GetLeft(), bb.GetBottom())]:
+            o.Append(x, y)
+        board.Add(z)
+    # thermal relief only on through-hole GND pads (hand soldering)
+    for fp in board.GetFootprints():
+        for pd in fp.Pads():
+            if pd.GetNetname() == "GND" and pd.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
+                pd.SetZoneConnection(pcbnew.ZONE_CONNECTION_THERMAL)
+    pcbnew.ZONE_FILLER(board).Fill(board.Zones())
 
 def route_once():
     board = pcbnew.LoadBoard(PCB)
@@ -59,13 +80,17 @@ def route_once():
             via.SetWidth(mm(dia / 1000)); via.SetDrill(mm(drill / 1000)); via.SetNet(ni)
             via.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
             board.Add(via); added_v += 1
+    add_pours(board)                   # ground is finished by the pours, so count after filling them
     board.BuildConnectivity()
     unrouted = board.GetConnectivity().GetUnconnectedCount(True)
     # copper DRC problems from the router (e.g. edge clearance) count as failures too
     rpt = base + "_check.rpt"
     pcbnew.WriteDRCReport(board, rpt, pcbnew.EDA_UNITS_MILLIMETRES, True)
-    bad = [l for l in open(rpt) if l.startswith("[") and not l.startswith(("[lib_footprint", "[silk", "[text_height"))
-           and "Severity: error" in "".join(open(rpt).read().split(l, 1)[1].splitlines()[:2])]
+    # a footprint's own pads sitting near its own board-edge cut-out (USB plug paddle) is not a router problem
+    blocks = re.split(r"\n(?=\[)", open(rpt).read())
+    bad = [b.splitlines()[0] for b in blocks if b.startswith("[") and "Severity: error" in b
+           and not b.startswith(("[lib_footprint", "[silk", "[text_height", "[unconnected_items"))
+           and not (b.startswith("[copper_edge_clearance") and "Track" not in b and "Via" not in b)]
     os.remove(rpt)
     if bad:
         print("  router DRC issues:", sorted(set(b.split("]")[0] + "]" for b in bad)))
@@ -83,27 +108,7 @@ else:
     for blk in lines:
         print("  unrouted:", " | ".join(l.strip() for l in blk.splitlines()[2:4]))
     sys.exit("Freerouting did not complete the board")
-nets = board.GetNetsByName()
-
-# Ground pours on both layers
-bb = board.GetBoardEdgesBoundingBox()
-for layer in (pcbnew.F_Cu, pcbnew.B_Cu):
-    z = pcbnew.ZONE(board)
-    z.SetLayer(layer); z.SetNet(nets["GND"]); z.SetLocalClearance(mm(0.3))
-    z.SetMinThickness(mm(0.25)); z.SetPadConnection(pcbnew.ZONE_CONNECTION_FULL)
-    z.SetThermalReliefGap(mm(0.3)); z.SetThermalReliefSpokeWidth(mm(0.4))
-    o = z.Outline(); o.NewOutline()
-    for x, y in [(bb.GetLeft(), bb.GetTop()), (bb.GetRight(), bb.GetTop()),
-                 (bb.GetRight(), bb.GetBottom()), (bb.GetLeft(), bb.GetBottom())]:
-        o.Append(x, y)
-    board.Add(z)
-# thermal relief only on through-hole GND pads (hand soldering)
-for fp in board.GetFootprints():
-    for pd in fp.Pads():
-        if pd.GetNetname() == "GND" and pd.GetAttribute() == pcbnew.PAD_ATTRIB_PTH:
-            pd.SetZoneConnection(pcbnew.ZONE_CONNECTION_THERMAL)
-pcbnew.ZONE_FILLER(board).Fill(board.Zones())
 board.Save(PCB)
 for f in (dsn, ses):
     os.remove(f)
-print("zones filled, saved", PCB)
+print("routed, ground pours filled, saved", PCB)
