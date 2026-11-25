@@ -1,0 +1,43 @@
+Ref,Value,Footprint,Note
+J1,VIN_IN,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",Supply input (bench PSU / 3.3V)
+R1,50m 1% 1W,Resistor_SMD:R_2512_6332Metric,"R_H shunt, high range, 4-wire layout"
+R2,1R 0.1%,Resistor_SMD:R_1206_3216Metric,"R_M shunt, mid range"
+R3,1k 0.1% 25ppm,Resistor_SMD:R_0805_2012Metric,"R_L shunt, low (nA/uA) range"
+D1,BAS416,Diode_SMD:D_SOD-323,D_M low-leakage clamp across R2
+D2,BAS416,Diode_SMD:D_SOD-323,D_L low-leakage clamp across R3
+Q1,DMP2008USS,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,Q_H: bypasses R2+R3 (high range)
+Q2,DMP2035U-7,Package_TO_SOT_SMD:SOT-23,Q_M: bypasses R3 (mid range)
+C1,22u X5R 25V,Capacitor_SMD:C_1206_3216Metric,"C_out, supplies DUT wake-up transient"
+J2,DUT_OUT,"TerminalBlock_Phoenix:TerminalBlock_Phoenix_MKDS-1,5-2-5.08_1x02_P5.08mm_Horizontal",To STM32 IDD jumper / VDD
+R4,100k,Resistor_SMD:R_0603_1608Metric,Q1 gate pull-up to VIN
+Q3,2N7002,Package_TO_SOT_SMD:SOT-23,Q1 gate driver
+R5,100k,Resistor_SMD:R_0603_1608Metric,Q2 gate pull-up to VIN
+Q4,2N7002,Package_TO_SOT_SMD:SOT-23,Q2 gate driver
+R6,100k,Resistor_SMD:R_0603_1608Metric,Default: high range ON at reset
+R7,100k,Resistor_SMD:R_0603_1608Metric,Default: mid bypass ON at reset
+U1,INA228AIDGSR,Package_SO:VSSOP-10_3x3mm_P0.5mm,I2C addr 0x40 on the MCU's private bus
+C2,100n,Capacitor_SMD:C_0603_1608Metric,U1 VS decoupling
+R8,10k,Resistor_SMD:R_0603_1608Metric,ALERT open-drain pull-up
+R9,4.7k,Resistor_SMD:R_0603_1608Metric,private I2C pull-up
+R10,4.7k,Resistor_SMD:R_0603_1608Metric,private I2C pull-up
+U3,TLV7021DBVR,Package_TO_SOT_SMD:SOT-23-5,Open-drain comparator powered from VIN; OUT low = over threshold
+C5,100n,Capacitor_SMD:C_0603_1608Metric,"U3 decoupling (VIN side, not measured)"
+R11,1k,Resistor_SMD:R_0603_1608Metric,threshold: Vth = Isink x 1k = ~32 mV
+Q5,MMBT3904,Package_TO_SOT_SMD:SOT-23,~32 uA current sink
+R12,33k,Resistor_SMD:R_0603_1608Metric,sets Isink = (Vb - Vbe) / 33k
+R13,100k,Resistor_SMD:R_0603_1608Metric,Vb = 1.65 V
+R14,100k,Resistor_SMD:R_0603_1608Metric,Vb = 1.65 V
+C6,100n,Capacitor_SMD:C_0603_1608Metric,Vb filter
+R15,10k,Resistor_SMD:R_0603_1608Metric,comparator output pull-up (3.3 V logic)
+U2,STM32G030F6P6,Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm,"Auto-ranging controller: I2C1 = INA228, I2C2 = host (slave 0x48), USART2 = CSV stream"
+C3,100n,Capacitor_SMD:C_0603_1608Metric,U2 decoupling
+C4,4.7u,Capacitor_SMD:C_0603_1608Metric,3V3 bulk
+C7,100n,Capacitor_SMD:C_0603_1608Metric,NRST filter
+R16,1k,Resistor_SMD:R_0603_1608Metric,status LED resistor
+D3,LED red,LED_SMD:LED_0603_1608Metric,status LED (blinks per range)
+J3,HOST,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,"To Raspberry Pi / PC: 3V3 GND SDA SCL TX RX (I2C slave 0x48, UART 921600 8N1)"
+J4,SWD,Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical,Programming: ST-Link (e.g. Nucleo CN4). Not assembled.
+H1,M3,MountingHole:MountingHole_3.2mm_M3,M3 mounting hole
+H2,M3,MountingHole:MountingHole_3.2mm_M3,M3 mounting hole
+H3,M3,MountingHole:MountingHole_3.2mm_M3,M3 mounting hole
+H4,M3,MountingHole:MountingHole_3.2mm_M3,M3 mounting hole

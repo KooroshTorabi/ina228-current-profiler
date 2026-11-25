@@ -1,12 +1,13 @@
 # Generates the PCB (placement + hand-routed measurement-critical nets).
 # Remaining low-current nets are routed with Freerouting (see tools/route.sh).
-# Usage: /usr/bin/python3 tools/gen_pcb.py <out.kicad_pcb> [integrated|module]
+# Usage: /usr/bin/python3 tools/gen_pcb.py <out.kicad_pcb> [integrated|module|smart]
 import json, os, sys
 import pcbnew
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VARIANT = sys.argv[2] if len(sys.argv) > 2 else "integrated"
-HW = os.path.join(HERE, "..", "hardware" if VARIANT == "integrated" else "hardware-module")
+HW = os.path.join(HERE, "..", {"integrated": "hardware", "module": "hardware-module", "smart": "hardware-smart"}[VARIANT])
+HAS_INA = VARIANT in ("integrated", "smart")
 FPLIB = os.environ.get("KICAD_FP", "/usr/share/kicad/footprints")
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HW, "kicad", "current_meter.kicad_pcb")
 
@@ -47,6 +48,18 @@ if VARIANT == "module":
         del PLACE[r]
     PLACE["J3"] = (113, 143, 90)
     PLACE["J4"] = (140, 132, 90)
+if VARIANT == "smart":
+    # board grows 13 mm: MCU strip at the bottom, comparator strip along the top edge
+    del PLACE["J3"]
+    PLACE.update({
+        "H3": (158.4, 158.4 - DY, 0), "H4": (103.6, 158.4 - DY, 0), "J3": (121, 156, 90), "J4": (108.5, 149.5, 90),
+        # comparator + threshold (top strip, fed from VIN upstream of R1)
+        "R14": (112.5, 101.5, 90), "R13": (115.0, 101.5, 90), "C6": (117.5, 101.5, 90), "R12": (120.0, 101.5, 90),
+        "Q5": (123.5, 101.5, 0), "R11": (127.0, 101.5, 90), "C5": (129.5, 101.5, 90), "U3": (133.0, 101.5, 180),
+        # MCU strip
+        "U2": (133.5, 146.0, 0), "C3": (128.0, 143.0, 90), "C4": (125.5, 143.0, 90), "C7": (128.0, 147.5, 90),
+        "R15": (125.5, 147.5, 90), "R16": (146.0, 145.5, 0), "D3": (150.5, 145.5, 180),
+    })
 FP = {}
 for ref, (x, y, rot) in PLACE.items():
     p = parts[ref]
@@ -63,6 +76,8 @@ for ref, (x, y, rot) in PLACE.items():
         if n:
             pad.SetNet(net(n))
     FP[ref] = fp
+    if VARIANT == "smart" and ref in ("R11", "R12", "R13", "R14", "C3", "C4", "C5", "C6", "C7", "R15", "Q5", "J4"):
+        fp.Reference().SetVisible(False)   # dense strips: keep the silkscreen readable
 
 def pad(ref, num):
     for pd in FP[ref].Pads():
@@ -108,7 +123,7 @@ def emit_tracks():
 
 Y = lambda y: y + DY
 # ---- board outline ----
-W, H = 62, 49
+W, H = 62, (62 if VARIANT == "smart" else 49)
 rect = pcbnew.PCB_SHAPE(board); rect.SetShape(pcbnew.SHAPE_T_RECT)
 rect.SetStart(V(100, 100)); rect.SetEnd(V(100 + W, 100 + H)); rect.SetLayer(pcbnew.Edge_Cuts); rect.SetWidth(mm(0.1))
 board.Add(rect)
@@ -133,7 +148,7 @@ track([(r41[0], j11[1]), r41], 0.3, "VIN")
 track([pad("R4", "1"), pad("R5", "1")], 0.3, "VIN")
 # Kelvin IN+: leaves R1 pad1 on its inner edge, runs along y=127 to U1 pin 10
 kx = r11[0]
-if VARIANT == "integrated":
+if HAS_INA:
     u10 = pad("U1", "10"); u9 = pad("U1", "9"); u8 = pad("U1", "8")
     track([(kx, r11[1]), (kx, Y(127)), (152.5, Y(127)), (152.5, u10[1]), u10], 0.2, "VIN")
 else:
@@ -167,7 +182,7 @@ track([r32, (135.5, r32[1]), (135.5, Y(120.5)), (bx, Y(120.5))], 0.4, "DUT_VDD")
 track([(bx, Y(120.5)), c11], 0.4, "DUT_VDD")
 track([d2k, (bx, d2k[1])], 0.4, "DUT_VDD")
 # Kelvin IN- and VBUS from J2 pad 1
-if VARIANT == "integrated":
+if HAS_INA:
     track([j21, (j21[0], u9[1]), u9], 0.2, "DUT_VDD")
     track([(151.5, u9[1]), (151.5, u8[1]), u8], 0.2, "DUT_VDD")
 else:
@@ -195,7 +210,14 @@ def silk(text, x, y, size=1.0, angle=0, layer=pcbnew.F_SilkS):
 j12 = pad("J1", "2"); j22 = pad("J2", "2")
 silk("VIN", 113.2, j11[1], 0.8, 90); silk("GND", 113.2, j12[1], 0.8, 90)
 silk("DUT", 149.0, j21[1], 0.8, 90); silk("GND", 149.0, j22[1], 0.8, 90)
-if VARIANT == "integrated":
+if VARIANT == "smart":
+    silk("INA228 smart profiler", 147, Y(151.0), 0.9)
+    silk("nA - 2.5 A  rev C", 147, Y(152.5), 0.8)
+    for i, s_ in enumerate(["3V3", "GND", "SDA", "SCL", "TX", "RX"]):
+        silk(s_, 121 + 2.54 * i, Y(156) - 3.4, 0.8, 90)
+    for i, s_ in enumerate(["3V3", "DIO", "CLK", "RST", "GND"]):
+        silk(s_, 108.5 + 2.54 * i, Y(149.5) - 3.4, 0.8, 90)
+elif VARIANT == "integrated":
     silk("INA228 current profiler", 147, Y(140.3), 0.9)
     silk("nA - 2.5 A  rev A", 147, Y(141.8), 0.8)
     for i, s_ in enumerate(["3V3", "GND", "SDA", "SCL", "ALRT", "CTLH", "CTLM"]):
@@ -208,6 +230,21 @@ else:
     for i, s_ in enumerate(["S+", "S-", "GND"]):
         silk(s_, 140 + 2.54 * i, Y(132) + 3.0, 0.8)
     silk("to module IN+ / IN-,VBUS", 143, Y(132) + 4.8, 0.8)
+
+if VARIANT == "smart":
+    # comparator feeds, hand-routed because VIN and DUT_VDD are never left to the router
+    yb = Y(104.6)                                  # VIN bus under the top strip, above R1/Q1
+    def vin_pad(ref):
+        return [pad(ref, n) for n in ("1", "2", "5") if parts[ref]["nets"].get(n) == "VIN"][0]
+    track([(kx, r11[1]), (kx, yb)], 0.3, "VIN")
+    tgt = [vin_pad("R11"), vin_pad("C5"), vin_pad("U3")]
+    track([(kx, yb), (max(t[0] for t in tgt), yb)], 0.3, "VIN")
+    for t in tgt:
+        track([(t[0], yb), t], 0.3, "VIN")
+    # U3 IN+ (pin 3) from the top of the Q1 drain bus: short, alone, 5 pA input
+    inp = pad("U3", "3"); dtop = min(p[1] for p in d_pads)
+    xr = inp[0] + 1.45
+    track([(dx, dtop), (dx, dtop - 1.2), (xr, dtop - 1.2), (xr, inp[1]), inp], 0.2, "DUT_VDD")
 
 emit_tracks()
 board.Save(OUT)

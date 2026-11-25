@@ -1,18 +1,22 @@
 # INA228 auto-ranging current profiler (nA – 2.5 A)
 
-A small open-hardware current meter for profiling microcontrollers such as the STM32, from **deep sleep (tens of nA)** up to **full load (2.5 A)**. It uses a TI **INA228** 20-bit power monitor, three series shunt resistors, and two P-MOSFETs that switch the measurement range. A separate **logger MCU** reads the INA228 over I2C, switches ranges and stores the data.
+A small open-hardware current meter for profiling microcontrollers such as the STM32, from **deep sleep (tens of nA)** up to **full load (2.5 A)**. It uses a TI **INA228** 20-bit power monitor, three series shunt resistors, and two P-MOSFETs that switch the measurement range.
 
-There are two variants built from the same range-switching core:
+There are three variants built from the same range-switching core:
 
-| | A: integrated | B: module adapter |
-|---|---|---|
-| | ![Integrated board](docs/integrated/3d_top.png) | ![Module adapter](docs/module/3d_top.png) |
-| INA228 | on the board | off-the-shelf breakout (SparkFun or Adafruit), its own shunt disabled |
-| Sense path | Kelvin traces to U1 | Kelvin sense header J4 → module IN+ / IN− |
-| Logger header | 3V3 GND SDA SCL ALERT CTL_H CTL_M | 3V3 GND CTL_H CTL_M (I2C via the module's Qwiic) |
-| Files | [`hardware/`](hardware) | [`hardware-module/`](hardware-module) · [notes](docs/module.md) |
+| | A: integrated | B: module adapter | C: smart (on-board ranging) |
+|---|---|---|---|
+| | ![Integrated board](docs/integrated/3d_top.png) | ![Module adapter](docs/module/3d_top.png) | ![Smart board](docs/smart/3d_top.png) |
+| INA228 | on the board | off-the-shelf breakout (SparkFun or Adafruit), its own shunt disabled | on the board |
+| Who switches ranges | your logger MCU | your logger MCU | **the board itself** (STM32G030 + fast comparator) |
+| What the host gets | raw INA228 + CTL lines | raw INA228 + CTL lines | **one number:** current in A, voltage, charge, energy |
+| Host header | 3V3 GND SDA SCL ALERT CTL_H CTL_M | 3V3 GND CTL_H CTL_M (I2C via the module's Qwiic) | 3V3 GND SDA SCL TX RX (I2C 0x48 or CSV over UART) |
+| Board | 62 × 49 mm | 62 × 49 mm | 62 × 62 mm |
+| Files | [`hardware/`](hardware) | [`hardware-module/`](hardware-module) · [notes](docs/module.md) | [`hardware-smart/`](hardware-smart) · [notes](docs/smart.md) · [firmware](firmware/smart) |
 
-Choose **A** for the cleanest, smallest-error build. Choose **B** if you already have an INA228 breakout or don't want to solder a 0.5 mm-pitch VSSOP.
+- **A:** the cleanest build when you want to write the ranging yourself.
+- **B:** if you already have an INA228 breakout or don't want to solder a 0.5 mm-pitch VSSOP.
+- **C:** if the host should just read a current. The three ranges then look like a single one from nA to 2.5 A.
 
 ### Why not just change the breakout's shunt?
 
@@ -25,6 +29,20 @@ A single shunt only moves the measurement window; it does not widen it:
 | 1 kΩ | 41 µA | ≈ 78 pA | deep sleep only |
 
 Measuring an STM32 from deep sleep (tens of nA) up to full load (2.5 A) takes switched ranges. Variant B adds them in front of a ready-made breakout.
+
+### Variant C in short
+
+- **One value out:**
+  - I2C: read a `float` at register 0x04 of address 0x48.
+  - UART: each line is `t_us,current_A,voltage_V,range`.
+  - The board also integrates **charge and energy** at the full conversion rate. Average current between two reads = Δcharge / Δtime, exact even with slow polling.
+- **Fast up-ranging in hardware:**
+  - A TLV7021 comparator watches the drop across the shunts (threshold ≈ 32 mV).
+  - When the DUT wakes up, it interrupts the MCU, which steps up a range in about 1 µs.
+  - Down-ranging is done in firmware with hysteresis, so ranges never oscillate.
+- **Supply:** VIN 1.8–5.5 V. 3V3 for the board comes from the host header.
+- **Programming:** SWD pads (J4) for an ST-Link, such as the one on a Nucleo board.
+- Details: [docs/smart.md](docs/smart.md) · firmware and register map: [firmware/smart](firmware/smart)
 
 ### Variant B in short
 
@@ -45,9 +63,9 @@ Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J
 
 ## 3D models
 
-**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer . Turn the board, zoom, switch between the two variants, and point at a part to see its name and value.
+**Interactive viewer:** https://kourosh.site/ina228-current-profiler/viewer . Turn the board, zoom, switch between the three variants, and point at a part to see its name and value.
 
-**STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl) or [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
+**STL in GitHub's own 3D viewer:** click [`hardware/3d/current_meter.stl`](hardware/3d/current_meter.stl), [`hardware-module/3d/current_adapter.stl`](hardware-module/3d/current_adapter.stl) or [`hardware-smart/3d/current_smart.stl`](hardware-smart/3d/current_smart.stl) and GitHub shows a rotatable model. It has one colour and no copper or silkscreen.
 
 | Variant A, bottom | Variant B, bottom |
 |---|---|
@@ -80,19 +98,20 @@ Q1 bypasses R2 and R3 together, so at high current only **one** MOSFET's Rds(on)
 
 See [docs/design.md](docs/design.md) for the design notes: wake-up transients, leakage, calibration and firmware strategy.
 
-## PCB (both variants)
+## PCB
 
-| Variant A, top | Variant B, top |
-|---|---|
-| ![A top](docs/integrated/pcb_top.svg) | ![B top](docs/module/pcb_top.svg) |
+| Variant A, top | Variant B, top | Variant C, top |
+|---|---|---|
+| ![A top](docs/integrated/pcb_top.svg) | ![B top](docs/module/pcb_top.svg) | ![C top](docs/smart/pcb_top.svg) |
 
-- **Board:** 62 × 49 mm, 2 layers, 1 oz copper, 4 × M3 holes, GND pour on both layers.
+- **Board:** 62 × 49 mm (C: 62 × 62 mm), 2 layers, 1 oz copper, 4 × M3 holes, GND pour on both layers.
 - **Terminals:** 5.08 mm screw terminals for VIN (J1) and DUT (J2). Both wire entries face the board edge.
 - **Hand-routed nets:** the measurement-critical nets (VIN, NODE_A, NODE_B, DUT_VDD) are routed in `tools/gen_pcb.py` and locked:
   - The 2.5 A path is 2 mm wide.
   - IN+ / S+ is a Kelvin trace from the R1 pad.
   - IN− / S− is a Kelvin trace from the DUT terminal.
   - The gate pull-ups tap VIN upstream of the sense point.
+  - Variant C: the comparator's VIN feed and its IN+ line from DUT_VDD are hand-routed too.
 - **Autorouted nets:** everything else is routed with Freerouting.
 - **Checks:** DRC is clean, nothing is unconnected, and every footprint is linked to its schematic symbol.
 - **Fabrication:** `fab/gerbers.zip` (Gerbers + drill) and `fab/positions_top.csv` in each hardware folder.
@@ -100,22 +119,25 @@ See [docs/design.md](docs/design.md) for the design notes: wake-up transients, l
 
 ## Ordering assembled boards
 
-Variant A is ready to order fully assembled from JLCPCB: Gerbers, BOM with LCSC part numbers, and the pick-and-place file are in [`hardware/jlcpcb/`](hardware/jlcpcb). Settings, part list, fallback parts and what to check in the placement preview are in [docs/ordering.md](docs/ordering.md).
+Variants A and C are ready to order fully assembled from JLCPCB: Gerbers, BOM with LCSC part numbers, and the pick-and-place file are in [`hardware/jlcpcb/`](hardware/jlcpcb) and [`hardware-smart/jlcpcb/`](hardware-smart/jlcpcb). Settings, part list, fallback parts and what to check in the placement preview are in [docs/ordering.md](docs/ordering.md).
 
 ## Repository layout
 
 ```
 hardware/            variant A: KiCad project, fab/, 3d/, jlcpcb/, schematic.pdf, BOM.csv
 hardware-module/     variant B: same structure
+hardware-smart/      variant C: same structure
 docs/
   design.md          design notes and calibration procedure
   module.md          variant B: preparing and wiring the breakout
-  ordering.md        ordering variant A assembled (JLCPCB)
-  integrated/ module/  schematic, PCB and 3D renders
+  smart.md           variant C: on-board ranging, comparator, sample rate
+  ordering.md        ordering variants A and C assembled (JLCPCB)
+  integrated/ module/ smart/  schematic, PCB and 3D renders
   viewer/            interactive 3D viewer (served at kourosh.site)
-firmware/            logger firmware (planned)
+firmware/
+  smart/             variant C firmware (STM32G030, bare metal) + host scripts for Pi / PC
 tools/
-  gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module)
+  gen_schematic.py   schematic, symbol library and BOM   (arg: integrated | module | smart)
   gen_pcb.py         placement + hand-routing of the critical nets
   route.py           Freerouting for the remaining nets, GND pours, DRC-gated retries
   step2glb.py        STEP → GLB with colours (OpenCascade)
@@ -123,7 +145,7 @@ tools/
   render_3d.py       PNG renders of the GLB
   glb2stl.py         one-colour STL for GitHub's 3D viewer
   build_pcb.sh       runs all of the above and exports fab files
-  jlcpcb.py          JLCPCB BOM + CPL for assembled variant-A boards
+  jlcpcb.py          JLCPCB BOM + CPL for assembled boards   (arg: integrated | smart)
 ```
 
 ## Logger connector (J3, variant A)
@@ -140,12 +162,15 @@ tools/
 
 Variant B's J3 is pins 1, 2, 6 and 7 of this list, in that order. Its J4 is S+, S−, GND.
 
+Variant C's J3 is `3V3, GND, SDA, SCL, TX, RX`: I2C slave 0x48 and UART 921600 8N1. See [firmware/smart](firmware/smart#host-interfaces-j3).
+
 ## Status
 
 - [x] Concept and schematic
-- [x] PCB layout, both variants (rev A, not yet fabricated)
+- [x] PCB layout, variants A and B (rev A) and C (rev C), not yet fabricated
 - [x] 3D models
-- [ ] Logger firmware with auto-ranging
+- [x] Variant C firmware with auto-ranging (compiles; not yet run on hardware)
+- [ ] Logger firmware for variants A/B
 - [ ] Calibration and validation against a reference meter
 
 ## Rebuilding
@@ -157,6 +182,9 @@ The schematics, PCBs and 3D files are all generated from scripts:
 # the 3D step also needs: pip install cadquery-ocp trimesh pillow pyrender "pyopengl==3.1.7"
 tools/build_pcb.sh /path/to/freerouting-1.9.0.jar integrated
 tools/build_pcb.sh /path/to/freerouting-1.9.0.jar module
+tools/build_pcb.sh /path/to/freerouting-1.9.0.jar smart
+python3 tools/jlcpcb.py smart          # JLCPCB BOM + CPL for variant C
+make -C firmware/smart                 # variant C firmware (arm-none-eabi-gcc)
 ```
 
 Freerouting is not deterministic, so the low-current routing can differ between runs. `route.py` retries until the board is fully connected with no copper DRC errors. Run DRC in KiCad once more after rebuilding.

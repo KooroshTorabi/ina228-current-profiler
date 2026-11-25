@@ -1,5 +1,6 @@
-# Logger firmware
+# Firmware
 
-Planned: I2C driver for the INA228, auto-ranging (ALERT-driven up-ranging, hysteresis down-ranging), per-range calibration stored in flash, and logging to an SD card or over USB.
-
-See [../docs/design.md](../docs/design.md#firmware-strategy-logger) for the strategy.
+- **[smart/](smart):** firmware for variant C (rev C board).
+  - The on-board STM32G030 auto-ranges and serves one current value over I2C (0x48) and UART.
+  - Includes host scripts for a Raspberry Pi or PC.
+- **Variants A and B:** the logger MCU switches the ranges itself. The strategy is in [../docs/design.md](../docs/design.md#firmware-strategy-logger); the range logic in `smart/src/main.c` can be ported directly.

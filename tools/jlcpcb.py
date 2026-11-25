@@ -1,13 +1,15 @@
-# Writes JLCPCB assembly files (BOM + CPL) for variant A, plus the Gerber zip, into hardware/jlcpcb/.
-# Usage: python3 tools/jlcpcb.py            (needs kicad-cli)
+# Writes JLCPCB assembly files (BOM + CPL) plus the Gerber zip into <hardware dir>/jlcpcb/.
+# Usage: python3 tools/jlcpcb.py [integrated|smart]      (needs kicad-cli; default integrated = variant A)
 #
 # LCSC numbers were picked from LCSC/JLCPCB listings in Nov 2026. Stock changes daily: JLCPCB's
 # BOM step shows live stock and offers replacements for anything that has run out.
-import csv, json, os, shutil, subprocess, tempfile
+import csv, json, os, shutil, subprocess, sys, tempfile
 
+VARIANT = sys.argv[1] if len(sys.argv) > 1 else "integrated"
+assert VARIANT in ("integrated", "smart")
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-HW = os.path.join(ROOT, "hardware")
-PCB = os.path.join(HW, "kicad", "current_meter.kicad_pcb")
+HW = os.path.join(ROOT, "hardware" if VARIANT == "integrated" else "hardware-smart")
+PCB = os.path.join(HW, "kicad", "current_meter.kicad_pcb" if VARIANT == "integrated" else "current_smart.kicad_pcb")
 OUT = os.path.join(HW, "jlcpcb")
 
 # ref -> (LCSC part, manufacturer part, JLC footprint name)
@@ -35,15 +37,39 @@ LCSC = {
     "J2":  ("C474952",  "KEFA KF128-5.08-2P-AA screw terminal", "THT 5.08mm 2P"),
     "J3":  ("C492406",  "XFCN PZ254V-11-07P pin header", "THT 2.54mm 1x7"),
 }
+DNP = set()      # footprints on the board that JLC leaves empty
+if VARIANT == "smart":
+    LCSC.update({
+        "J3":  ("C492405",  "XFCN PZ254V-11-06P pin header", "THT 2.54mm 1x6"),
+        "U2":  ("C724040",  "ST STM32G030F6P6", "TSSOP-20"),
+        "U3":  ("C2860939", "TI TLV7021DBVR comparator", "SOT-23-5"),
+        "Q5":  ("C20526",   "MMBT3904", "SOT-23"),
+        "R11": ("C21190",   "1kΩ 1% 0603", "0603"),
+        "R12": ("C4216",    "33kΩ 1% 0603", "0603"),
+        "R13": ("C25803",   "100kΩ 1% 0603", "0603"),
+        "R14": ("C25803",   "100kΩ 1% 0603", "0603"),
+        "R15": ("C25804",   "10kΩ 1% 0603", "0603"),
+        "R16": ("C21190",   "1kΩ 1% 0603", "0603"),
+        "C3":  ("C14663",   "YAGEO CC0603KRX7R9BB104 100nF 50V X7R", "0603"),
+        "C4":  ("C19666",   "Samsung CL10A475KO8NNNC 4.7µF 16V X5R", "0603"),
+        "C5":  ("C14663",   "YAGEO CC0603KRX7R9BB104 100nF 50V X7R", "0603"),
+        "C6":  ("C14663",   "YAGEO CC0603KRX7R9BB104 100nF 50V X7R", "0603"),
+        "C7":  ("C14663",   "YAGEO CC0603KRX7R9BB104 100nF 50V X7R", "0603"),
+        "D3":  ("C2286",    "KENTO KT-0603R red LED", "0603"),
+    })
+    DNP = {"J4"}  # SWD header: solder a 1x5 header (or use pogo pins) for programming
 
 # JLC's 3D models use a different zero orientation than KiCad's footprints for these
 # parts (checked against pin-1 dots in JLC's placement preview, Nov 2026). Degrees, CCW positive.
 ROT_FIX = {"Q1": -90, "Q2": 180, "Q3": 180, "Q4": 180, "D1": 180, "D2": 180, "J3": -90}
+# Variant C parts not yet seen in JLC's preview: same correction as the parts of the same package
+# above (SOT-23, diodes). U2 (TSSOP-20) and U3 (SOT-23-5): check the pin-1 dot in the preview.
+ROT_FIX.update({"Q5": 180, "D3": 180, "U3": 180})
 # JLC places these at the body centre, KiCad's origin is pin 1: use the pad centroid instead.
 CENTROID = {"J1", "J2", "J3"}
 
 parts = json.load(open(os.path.join(HW, "parts.json")))
-placed = [r for r in parts if not r.startswith("H")]
+placed = [r for r in parts if not r.startswith("H") and r not in DNP]
 missing = sorted(set(placed) - set(LCSC))
 assert not missing, f"no LCSC number for {missing}"
 

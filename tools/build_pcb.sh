@@ -2,12 +2,17 @@
 # Rebuilds the schematic, PCB, fabrication outputs and 3D model for one variant.
 # Needs: KiCad 7+ (pcbnew Python + kicad-cli, footprint and 3D libraries), Java,
 #        xvfb-run and the Freerouting 1.9 jar.
-# Usage: tools/build_pcb.sh /path/to/freerouting-1.9.0.jar [integrated|module]
+# Usage: tools/build_pcb.sh /path/to/freerouting-1.9.0.jar [integrated|module|smart]
 #   PYTHON = python with pcbnew (default python3), PY3D = python with the 3D packages
 set -e
 cd "$(dirname "$0")/.."
 VARIANT=${2:-integrated}
-if [ "$VARIANT" = integrated ]; then HW=hardware; NAME=current_meter; else HW=hardware-module; NAME=current_adapter; fi
+case "$VARIANT" in
+  integrated) HW=hardware; NAME=current_meter ;;
+  module) HW=hardware-module; NAME=current_adapter ;;
+  smart) HW=hardware-smart; NAME=current_smart ;;
+  *) echo "unknown variant $VARIANT"; exit 1 ;;
+esac
 PCB=$HW/kicad/$NAME.kicad_pcb
 PY=${PYTHON:-python3}
 $PY tools/gen_schematic.py "$VARIANT"

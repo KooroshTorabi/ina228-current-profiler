@@ -73,3 +73,22 @@ JLC's 3D models don't use KiCad's zero orientation for every package. `tools/jlc
 corrects the CPL so that the pin-1 dots in JLC's Component Placements preview land on
 the silkscreen pin-1 marks: Q1 −90°, Q2–Q4 180°, D1/D2 180° (cathode to the right),
 J3 −90°; J1, J2 and J3 are placed at their pad centroid (JLC uses the body centre, KiCad uses pin 1). Still check the preview before ordering.
+
+## Variant C (smart profiler)
+
+The files are in [`hardware-smart/jlcpcb/`](../hardware-smart/jlcpcb): `gerbers.zip`, `bom_jlcpcb.csv` and `cpl_jlcpcb.csv`. The steps are the same as for variant A, with these differences:
+
+- **Board:** 62 × 62 mm.
+- **Extra parts:**
+  - U2 STM32G030F6P6 (C724040)
+  - U3 TLV7021DBVR (C2860939; low stock, so check before ordering)
+  - Q5 MMBT3904 (C20526)
+  - R11–R16, C3–C7
+  - D3 red LED (C2286)
+  - J3 is a 1×6 header (C492405)
+- **J4 (SWD) is not assembled.** Solder a 1×5 header yourself to program U2.
+- **Unverified rotations:** U2 (TSSOP-20) and U3 (SOT-23-5) have not yet been seen in JLC's placement preview.
+  - Check their pin-1 dots against the silkscreen marks, as for Q1 on variant A.
+  - Q5 and D3 already get the same correction as the other SOT-23 and diode parts.
+- **U1 (INA228)** must be pre-ordered, as for variant A.
+- **Firmware:** the boards arrive blank. Flash `firmware/smart` over SWD before first use.

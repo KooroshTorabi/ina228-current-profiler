@@ -1,14 +1,15 @@
 # Generates the KiCad 7 schematic, symbol library and BOM for this project.
-# Usage: python3 tools/gen_schematic.py [integrated|module]
+# Usage: python3 tools/gen_schematic.py [integrated|module|smart]
 #   integrated: INA228 on board (hardware/)
 #   module:     shunt/range-switch adapter for an off-the-shelf INA228 breakout (hardware-module/)
+#   smart:      INA228 + on-board STM32G030 that does the ranging; host reads one number (hardware-smart/)
 import uuid, os, json, sys
 
 VARIANT = sys.argv[1] if len(sys.argv) > 1 else "integrated"
-assert VARIANT in ("integrated", "module")
-PROJ = "current_meter" if VARIANT == "integrated" else "current_adapter"
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
-                   "hardware" if VARIANT == "integrated" else "hardware-module", "kicad")
+assert VARIANT in ("integrated", "module", "smart")
+PROJ = {"integrated": "current_meter", "module": "current_adapter", "smart": "current_smart"}[VARIANT]
+HWDIR = {"integrated": "hardware", "module": "hardware-module", "smart": "hardware-smart"}[VARIANT]
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", HWDIR, "kicad")
 os.makedirs(OUT, exist_ok=True)
 NS = uuid.UUID("6f1c2a54-9b0e-4d3c-8a8e-1c0de5ca1e01")
 ROOT = str(uuid.uuid5(NS, "root"))
@@ -85,9 +86,43 @@ def conn(n):
     pins = [(str(i + 1), f"Pin_{i+1}", -5.08, -2.54 * i, 0, 3.81, False) for i in range(n)]
     body = [f'(rectangle (start -1.27 1.27) (end 1.27 {F(-2.54*(n-1)-1.27)}) {st})']
     sym(f"Conn_1x{n:02d}", "J", body, pins, ref_at=(0, 2.54, 0), val_at=(0, -2.54 * n, 0))
-conn(2); conn(7)
+conn(2)
+if VARIANT == "integrated":
+    conn(7)
 if VARIANT == "module":
     conn(3); conn(4)
+if VARIANT == "smart":
+    conn(5); conn(6)
+    # STM32G030F6P6 (TSSOP-20): left pins top to bottom, right pins top to bottom
+    lft = [("4", "VDD"), ("6", "NRST"), ("7", "PA0"), ("8", "PA1"), ("9", "PA2"), ("10", "PA3"),
+           ("11", "PA4"), ("12", "PA5"), ("13", "PA6"), ("14", "PA7")]
+    rgt = [("1", "PB7"), ("20", "PB6"), ("17", "PA12"), ("16", "PA11"), ("18", "PA13"), ("19", "PA14"),
+           ("2", "PB9"), ("3", "PC15"), ("15", "PB0"), ("5", "VSS")]
+    mp = [(n, nm, -12.7, 11.43 - 2.54 * i, 0, 2.54, False) for i, (n, nm) in enumerate(lft)] + \
+         [(n, nm, 12.7, 11.43 - 2.54 * i, 180, 2.54, False) for i, (n, nm) in enumerate(rgt)]
+    sym("STM32G030F6", "U", [f'(rectangle (start -10.16 13.97) (end 10.16 -13.97) (stroke (width 0.254) (type default)) (fill (type background)))'],
+        mp, show_names=True, ref_at=(0, 15.24, 0), val_at=(0, -15.24, 0))
+    # comparator: IN+ IN- on the left, OUT on the right, V+ top, GND bottom
+    sym("TLV7021", "U", [f'(polyline (pts (xy -5.08 5.08) (xy 5.08 0) (xy -5.08 -5.08) (xy -5.08 5.08)) (stroke (width 0.254) (type default)) (fill (type background)))'],
+        [("3", "+", -7.62, 2.54, 0, 2.54, False), ("4", "-", -7.62, -2.54, 0, 2.54, False),
+         ("1", "~", 7.62, 0, 180, 2.54, False), ("5", "~", 0, 7.62, 270, 5.08, False), ("2", "~", 0, -7.62, 90, 5.08, False)],
+        show_names=True, ref_at=(2.54, 6.35, 0), val_at=(2.54, -6.35, 0))
+    # NPN: C top, E bottom, B left (SOT-23: 1=B 2=E 3=C)
+    sym("NPN_SOT23", "Q", [
+        f'(polyline (pts (xy -1.27 2.032) (xy -1.27 -2.032)) {st})',
+        f'(polyline (pts (xy -1.27 0.762) (xy 2.54 2.54)) {st})',
+        f'(polyline (pts (xy -1.27 -0.762) (xy 2.54 -2.54)) {st})',
+        f'(polyline (pts (xy 1.27 -1.524) (xy 2.54 -2.54) (xy 1.016 -2.286) (xy 1.27 -1.524)) {stf})',
+        f'(polyline (pts (xy -5.08 0) (xy -1.27 0)) {st})'],
+        [("1", "B", -5.08, 0, 0, 0, False), ("3", "C", 2.54, 5.08, 270, 2.54, False), ("2", "E", 2.54, -5.08, 90, 2.54, False)],
+        show_names=False, ref_at=(5.08, 1.27, 0), val_at=(5.08, -1.27, 0))
+    # LED: anode on top, pin1 = K, pin2 = A
+    sym("LED", "D",
+        [f'(polyline (pts (xy -1.27 1.27) (xy 1.27 1.27) (xy 0 -1.27) (xy -1.27 1.27)) {st})',
+         f'(polyline (pts (xy -1.27 -1.27) (xy 1.27 -1.27)) {st})',
+         f'(polyline (pts (xy 1.778 0.508) (xy 3.048 -0.762)) {st})',
+         f'(polyline (pts (xy 1.778 -0.254) (xy 3.048 -1.524)) {st})'],
+        [("1", "K", 0, -3.81, 90, 2.54, False), ("2", "A", 0, 3.81, 270, 2.54, False)])
 sym("MountingHole", "H", [f'(circle (center 0 0) (radius 1.27) {st})'], [], ref_at=(2.54, 0.635, 0), val_at=(2.54, -1.27, 0))
 
 def sym_sexpr(name, prefix):
@@ -165,6 +200,45 @@ if VARIANT == "integrated":
          {"1": "+3V3", "2": "GND", "3": "SDA", "4": "SCL", "5": "ALERT", "6": "CTL_H", "7": "CTL_M"},
          "To logger MCU: 3V3 GND SDA SCL ALERT CTL_H CTL_M")
 
+elif VARIANT == "smart":
+    # INA228 on a private I2C bus owned by the on-board MCU
+    part("U1", "INA228", "INA228AIDGSR", "Package_SO:VSSOP-10_3x3mm_P0.5mm", 205.74, 60.96,
+         {"10": "VIN", "9": "DUT_VDD", "8": "DUT_VDD", "6": "+3V3", "7": "GND", "4": "SDA", "5": "SCL",
+          "3": "ALERT", "2": "GND", "1": "GND"}, "I2C addr 0x40 on the MCU's private bus")
+    part("C2", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 238.76, 45.72, {"1": "+3V3", "2": "GND"}, "U1 VS decoupling")
+    part("R8", "R", "10k", FP_R0603, 254.0, 45.72, {"1": "+3V3", "2": "ALERT"}, "ALERT open-drain pull-up")
+    part("R9", "R", "4.7k", FP_R0603, 266.7, 45.72, {"1": "+3V3", "2": "SDA"}, "private I2C pull-up")
+    part("R10", "R", "4.7k", FP_R0603, 279.4, 45.72, {"1": "+3V3", "2": "SCL"}, "private I2C pull-up")
+    # fast up-range comparator: trips when VIN - DUT_VDD exceeds ~32 mV, in about 1 us
+    part("U3", "TLV7021", "TLV7021DBVR", "Package_TO_SOT_SMD:SOT-23-5", 317.5, 60.96,
+         {"3": "DUT_VDD", "4": "CMP_REF", "1": "CMP_OUT", "5": "VIN", "2": "GND"},
+         "Open-drain comparator powered from VIN; OUT low = over threshold")
+    part("C5", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 342.9, 50.8, {"1": "VIN", "2": "GND"}, "U3 decoupling (VIN side, not measured)")
+    part("R11", "R", "1k", FP_R0603, 304.8, 40.64, {"1": "VIN", "2": "CMP_REF"}, "threshold: Vth = Isink x 1k = ~32 mV")
+    part("Q5", "NPN_SOT23", "MMBT3904", FP_SOT23, 302.26, 83.82, {"1": "CMP_B", "3": "CMP_REF", "2": "CMP_E"}, "~32 uA current sink")
+    part("R12", "R", "33k", FP_R0603, 304.8, 104.14, {"1": "CMP_E", "2": "GND"}, "sets Isink = (Vb - Vbe) / 33k")
+    part("R13", "R", "100k", FP_R0603, 281.94, 66.04, {"1": "+3V3", "2": "CMP_B"}, "Vb = 1.65 V")
+    part("R14", "R", "100k", FP_R0603, 281.94, 93.98, {"1": "CMP_B", "2": "GND"}, "Vb = 1.65 V")
+    part("C6", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 269.24, 93.98, {"1": "CMP_B", "2": "GND"}, "Vb filter")
+    part("R15", "R", "10k", FP_R0603, 353.06, 50.8, {"1": "+3V3", "2": "CMP_OUT"}, "comparator output pull-up (3.3 V logic)")
+    # MCU
+    part("U2", "STM32G030F6", "STM32G030F6P6", "Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm", 330.2, 127.0,
+         {"4": "+3V3", "5": "GND", "6": "NRST", "7": "CMP_OUT", "8": "ALERT", "9": "TX", "10": "RX",
+          "11": "CTL_H", "12": "CTL_M", "13": "LED", "14": "NC_PA7", "1": "SDA", "20": "SCL",
+          "17": "HSDA", "16": "HSCL", "18": "SWDIO", "19": "SWCLK", "2": "NC_PB9", "3": "NC_PC15", "15": "NC_PB0"},
+         "Auto-ranging controller: I2C1 = INA228, I2C2 = host (slave 0x48), USART2 = CSV stream")
+    part("C3", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 297.18, 116.84, {"1": "+3V3", "2": "GND"}, "U2 decoupling")
+    part("C4", "C", "4.7u", "Capacitor_SMD:C_0603_1608Metric", 287.02, 116.84, {"1": "+3V3", "2": "GND"}, "3V3 bulk")
+    part("C7", "C", "100n", "Capacitor_SMD:C_0603_1608Metric", 297.18, 139.7, {"1": "NRST", "2": "GND"}, "NRST filter")
+    part("R16", "R", "1k", FP_R0603, 365.76, 106.68, {"1": "LED", "2": "LED_A"}, "status LED resistor")
+    part("D3", "LED", "LED red", "LED_SMD:LED_0603_1608Metric", 365.76, 132.08, {"2": "LED_A", "1": "GND"}, "status LED (blinks per range)")
+    part("J3", "Conn_1x06", "HOST", "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical", 386.08, 86.36,
+         {"1": "+3V3", "2": "GND", "3": "HSDA", "4": "HSCL", "5": "TX", "6": "RX"},
+         "To Raspberry Pi / PC: 3V3 GND SDA SCL TX RX (I2C slave 0x48, UART 921600 8N1)")
+    part("J4", "Conn_1x05", "SWD", "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical", 386.08, 127.0,
+         {"1": "+3V3", "2": "SWDIO", "3": "SWCLK", "4": "NRST", "5": "GND"},
+         "Programming: ST-Link (e.g. Nucleo CN4). Not assembled.")
+
 else:
     # Off-the-shelf INA228 breakout (e.g. SparkFun SEN-31438 with SHUNT jumper opened,
     # or Adafruit 5832 with its 15 mOhm shunt removed) senses this board via J4.
@@ -234,18 +308,28 @@ notes_module = [
     (20.32, 170.18, "R4/R5 go to VIN upstream of the S+ tap. Logger: CTL_x HIGH = bypass FET ON (default at reset). VIN max ~6V (FET Vgs)."),
     (20.32, 175.26, "Keep sense wires short and twisted. Calibrate each range with a known load; zero-calibrate range L with the DUT disconnected."),
 ]
-notes = notes_integrated if VARIANT == "integrated" else notes_module
+notes_smart = [
+    (20.32, 154.94, "Smart variant: the on-board STM32G030 switches the ranges and the host reads one number (I2C slave 0x48 or CSV over UART)."),
+    (20.32, 160.02, "Ranges as in rev A: L = R1+R2+R3, M = R1+R2+Rds(Q2), H = R1+Rds(Q1). CTL_x HIGH = bypass FET ON (default at reset)."),
+    (20.32, 165.1, "U3 trips in ~1 us when VIN - DUT_VDD > Vth (~32 mV = 1k x ~32 uA from Q5) and the MCU steps up one range at once."),
+    (20.32, 170.18, "U3 IN+ sits on DUT_VDD: keep it a short, clean trace (5 pA input). R11/Q5/U3 are fed from VIN, upstream of the shunts."),
+    (20.32, 175.26, "VIN 1.8 V to 5.5 V (U3 supply and FET Vgs). 3V3 for INA228 + MCU comes from the host header J3. Program U2 over SWD (J4)."),
+]
+notes = {"integrated": notes_integrated, "module": notes_module, "smart": notes_smart}[VARIANT]
 for (x, y, t) in notes:
     items.append(f'(text "{t}" (at {F(x)} {F(y)} 0) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "{U()}"))')
 
 if VARIANT == "integrated":
     TITLE = "INA228 auto-ranging current meter (nA - 2.5A)"
     COMMENT = "High-side, 3 shunts + P-FET range switching, logger MCU over I2C"
+elif VARIANT == "smart":
+    TITLE = "INA228 smart current profiler (nA - 2.5A), rev C"
+    COMMENT = "On-board STM32G030 auto-ranging + comparator fast up-range; one value out over I2C / UART"
 else:
     TITLE = "Shunt + range-switch adapter for INA228 module (nA - 2.5A)"
     COMMENT = "High-side, 3 shunts + P-FET range switching, Kelvin sense to external INA228 breakout"
 libsyms = " ".join(sym_sexpr(n, "meter:") for n in SYMS)
-sch = (f'(kicad_sch (version 20230121) (generator eeschema) (uuid "{ROOT}") (paper "A4") '
+sch = (f'(kicad_sch (version 20230121) (generator eeschema) (uuid "{ROOT}") (paper "{"A3" if VARIANT == "smart" else "A4"}") '
        f'(title_block (title "{TITLE}") (date "2026-11-24") (rev "A") '
        f'(comment 1 "{COMMENT}")) '
        f'(lib_symbols {libsyms}) ' + " ".join(items) +
