@@ -1,40 +1,51 @@
-# INA228 auto-ranging current profiler (nA – 2.5 A)
+# INA228 current profiler: four revisions, from nanoamps to USB-C chargers
 
-A small open-hardware current meter for profiling microcontrollers such as the STM32, from **deep sleep (tens of nA)** up to **full load (2.5 A)**. It uses a TI **INA228** 20-bit power monitor, three series shunt resistors, and two P-MOSFETs that switch the measurement range.
+Open-hardware current and power meters built around TI's **INA228** 20-bit power monitor. They come in four revisions (A–D) for two jobs:
 
-There are three variants built from the same range-switching core:
+- **A, B, C: profiling microcontrollers** such as an STM32, from **deep sleep (tens of nA)** up to **full load (2.5 A)**. Three series shunts and two P-MOSFETs switch the measurement range.
+- **D: USB-C power meter.** An in-line tester for chargers, phones and power banks (4–48 V, 5 A), with the analysis in a PC app.
 
-| | A: integrated | B: module adapter | C: smart (on-board ranging) |
-|---|---|---|---|
-| | ![Integrated board](docs/integrated/3d_top.png) | ![Module adapter](docs/module/3d_top.png) | ![Smart board](docs/smart/3d_top.png) |
-| INA228 | on the board | off-the-shelf breakout (SparkFun or Adafruit), its own shunt disabled | on the board |
-| Who switches ranges | your logger MCU | your logger MCU | **the board itself** (STM32G030 + fast comparator) |
-| What the host gets | raw INA228 + CTL lines | raw INA228 + CTL lines | **one number:** current in A, voltage, charge, energy |
-| Host header | 3V3 GND SDA SCL ALERT CTL_H CTL_M | 3V3 GND CTL_H CTL_M (I2C via the module's Qwiic) | 3V3 GND SDA SCL TX RX (I2C 0x48 or CSV over UART) |
-| Board | 62 × 49 mm | 62 × 49 mm | 62 × 62 mm |
-| Files | [`hardware/`](hardware) | [`hardware-module/`](hardware-module) · [notes](docs/module.md) | [`hardware-smart/`](hardware-smart) · [notes](docs/smart.md) · [firmware](firmware/smart) |
+**3D view of all four:** https://kourosh.site/ina228-current-profiler/viewer (buttons A–D at the top).
 
-- **A:** the cleanest build when you want to write the ranging yourself.
-- **B:** if you already have an INA228 breakout or don't want to solder a 0.5 mm-pitch VSSOP.
-- **C:** if the host should just read a current. The three ranges then look like a single one from nA to 2.5 A.
+## The four revisions
 
-### Rev D: USB-C power meter (4–48 V, 5 A)
+| | A: integrated | B: module adapter | C: smart | D: USB-C power meter |
+|---|---|---|---|---|
+| | ![A](docs/integrated/3d_top.png) | ![B](docs/module/3d_top.png) | ![C](docs/smart/3d_top.png) | ![D](docs/usb/3d_top.png) |
+| **Measures** | ~5 nA – 2.5 A, VIN up to ~6 V | ~5 nA – 2.5 A, VIN up to ~6 V | ~5 nA – 2.5 A, VIN 1.8–5.5 V | 7.8 µA steps – 5 A, 4–48 V |
+| **Shunts / ranges** | 3 shunts, 3 ranges | 3 shunts, 3 ranges | 3 shunts, 3 ranges | 1 shunt (10 mΩ), 2 ADC ranges |
+| **INA228** | on the board | off-the-shelf breakout (SparkFun or Adafruit) | on the board | on the board |
+| **Who switches ranges** | your logger MCU | your logger MCU | the board (STM32G030 + comparator) | the board (STM32G0B1) |
+| **Connects to** | logger MCU: I2C + 2 control lines | logger MCU: Qwiic I2C + 2 control lines | Pi / MCU / PC: I2C 0x48 or CSV over UART | PC: USB-C, serial port + browser app |
+| **The host gets** | raw INA228 readings | raw INA228 readings | one number: A, V, charge, energy | V, A, W, mAh, Wh, CC/D± lines, reports |
+| **Board** | 62 × 49 mm | 62 × 49 mm | 62 × 62 mm | 56 × 32 mm + USB-C plug |
+| **Build** | JLCPCB assembled | adapter only, cheapest | JLCPCB assembled | JLCPCB assembled |
+| **Files** | [`hardware/`](hardware) | [`hardware-module/`](hardware-module) · [notes](docs/module.md) | [`hardware-smart/`](hardware-smart) · [notes](docs/smart.md) · [firmware](firmware/smart) | [`hardware-usb/`](hardware-usb) · [notes](docs/usb.md) · [firmware](firmware/usb) · [app](https://kourosh.site/ina228-current-profiler/app/) |
 
-![Rev D](docs/usb/3d_top.png)
+## Which one to build
 
-A separate in-line tester for chargers, phones and power banks, built on the same INA228:
+- **A: integrated.** You are building your own logger and want to write the ranging yourself.
+  - Best for: battery-life studies of an STM32 or nRF board, controlled from your own firmware.
+  - Not for: plugging into a PC and reading a number straight away; a logger MCU is needed.
+- **B: module adapter.** You already have a SparkFun or Adafruit INA228 breakout, or don't want to solder a 0.5 mm-pitch chip.
+  - Best for: the cheapest way to try range switching, a quick lab setup.
+  - Not for: the best accuracy at nA; the sense wires to the breakout add noise and need care.
+- **C: smart.** The host should just read a current: a Raspberry Pi, a test rig, a CI setup.
+  - Best for: low-power profiling without writing ranging code: three ranges that look like one from nA to 2.5 A, plus exact charge and energy.
+  - Not for: anything above 5.5 V or 2.5 A (A and B have the same current limit and reach about 6 V).
+- **D: USB-C power meter.** Chargers, phones, power banks and cables, not microcontrollers.
+  - Best for:
+    - seeing what a charger negotiates (USB PD up to 48 V, PPS, QC, Apple, BC1.2) and logging a whole charge;
+    - charger + cable resistance and an estimate of the battery's health, in the PC app.
+  - Not for: sleep currents below about 10 µA (one 10 mΩ shunt) or SuperSpeed data (USB 2.0 is passed through).
 
-- **Hardware:** a USB-C plug (J1) goes into the charger, the device's cable goes into the receptacle (J2), and a second USB-C port (J3) goes to the PC.
-- **Measures:** V, A, W, mAh and mWh, plus the CC1/CC2/D+/D− line voltages (Type-C current advertisement, VCONN, QC/Apple/BC1.2 levels).
-- **No display:** everything goes to the PC over USB as a serial port, for an app to plot and report.
-- **Range:** 10 mΩ shunt. ±4 A in 7.8 µA steps, switching automatically to ±16 A above 3.8 A. Board limit 5 A.
-- **USB PD 3.1 EPR (48 V):** the INA228 (85 V) and the 51 V TVS cover it. The plug is rated 20 V, see [docs/usb.md](docs/usb.md#will-usb-pd-31-48-v-damage-it).
-- **Pass-through:** CC1, CC2, D+, D−, SBU1 and SBU2 go straight through, so PD/QC negotiation and e-marked cables work as with the cable alone.
-- **Programming:** STM32G0B1 with TinyUSB, flashed over USB (DFU). No programmer needed.
-- **PC app:** https://kourosh.site/ina228-current-profiler/app/ opens in Chrome or Edge and talks to the meter over Web Serial, with nothing to install. It shows live V/A/W charts, decodes what the charger negotiates, and builds a charge-session report: phases, voltage levels, charger + cable resistance, and an estimate of the battery's capacity and health. It also has a demo session and opens CSV logs. Source: [`docs/app/index.html`](docs/app/index.html).
-- **Files:** [`hardware-usb/`](hardware-usb) · [notes](docs/usb.md) · [firmware](firmware/usb)
+Rough cost per assembled board at JLCPCB (parts, fees, shipping to the EU and VAT):
+- **A, C and D:** about €20–25 each when 5 are ordered, €40–50 each for 2, and about $8–10 at 100+.
+- **B:** cheaper, plus the breakout.
 
-### Why not just change the breakout's shunt?
+## Details
+
+### Why switched ranges (A–C)? Why not just change the breakout's shunt?
 
 A single shunt only moves the measurement window; it does not widen it:
 
@@ -76,6 +87,18 @@ Measuring an STM32 from deep sleep (tens of nA) up to full load (2.5 A) takes sw
 > Before wiring, measure the resistance between the module's IN+ and IN−. It must be high (hundreds of kΩ or more), not milliohms.
 
 Keep the S+/S− wires short (under 15 cm) and twisted, and away from the J1–J2 current path. Full preparation and wiring notes: [docs/module.md](docs/module.md).
+
+### Rev D in short
+
+- **Hardware:** a USB-C plug (J1) goes into the charger, the device's cable goes into the receptacle (J2), and a second USB-C port (J3) goes to the PC.
+- **Measures:** V, A, W, mAh and mWh, plus the CC1/CC2/D+/D− line voltages (Type-C current advertisement, VCONN, QC/Apple/BC1.2 levels).
+- **No display:** everything goes to the PC over USB as a serial port, for an app to plot and report.
+- **Range:** 10 mΩ shunt. ±4 A in 7.8 µA steps, switching automatically to ±16 A above 3.8 A. Board limit 5 A.
+- **USB PD 3.1 EPR (48 V):** the INA228 (85 V) and the 51 V TVS cover it. The plug is rated 20 V, see [docs/usb.md](docs/usb.md#will-usb-pd-31-48-v-damage-it).
+- **Pass-through:** CC1, CC2, D+, D−, SBU1 and SBU2 go straight through, so PD/QC negotiation and e-marked cables work as with the cable alone.
+- **Programming:** STM32G0B1 with TinyUSB, flashed over USB (DFU). No programmer needed.
+- **PC app:** https://kourosh.site/ina228-current-profiler/app/ opens in Chrome or Edge and talks to the meter over Web Serial, with nothing to install. It shows live V/A/W charts, decodes what the charger negotiates, and builds a charge-session report: phases, voltage levels, charger + cable resistance, and an estimate of the battery's capacity and health. It also has a demo session and opens CSV logs. Source: [`docs/app/index.html`](docs/app/index.html).
+- **Files:** [`hardware-usb/`](hardware-usb) · [notes](docs/usb.md) · [firmware](firmware/usb)
 
 ## 3D models
 
